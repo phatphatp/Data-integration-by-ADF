@@ -1,0 +1,47 @@
+{
+	"name": "WarehouseTable",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "output",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "SQL"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "WAREHOUSE_ID",
+				"type": "varchar"
+			},
+			{
+				"name": "NAME",
+				"type": "varchar"
+			},
+			{
+				"name": "LOCATION",
+				"type": "varchar"
+			},
+			{
+				"name": "PRODUCT_NAME",
+				"type": "varchar"
+			},
+			{
+				"name": "TOTAL_STOCK",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "REORDER_POINT",
+				"type": "int",
+				"precision": 10
+			}
+		],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "WAREHOUSE"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

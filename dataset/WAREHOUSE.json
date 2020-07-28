@@ -1,0 +1,52 @@
+{
+	"name": "WAREHOUSE",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "Inputfile",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "blob storage"
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobStorageLocation",
+				"fileName": "WAREHOUSE.csv",
+				"container": "input"
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": [
+			{
+				"name": "WAREHOUSE_ID",
+				"type": "String"
+			},
+			{
+				"name": "NAME",
+				"type": "String"
+			},
+			{
+				"name": "LOCATION",
+				"type": "String"
+			},
+			{
+				"name": "PRODUCT_NAME ",
+				"type": "String"
+			},
+			{
+				"name": "TOTAL STOCK",
+				"type": "String"
+			},
+			{
+				"name": "REORDER POINT",
+				"type": "String"
+			}
+		]
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

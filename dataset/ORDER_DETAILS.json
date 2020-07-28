@@ -1,0 +1,76 @@
+{
+	"name": "ORDER_DETAILS",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "Inputfile",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "blob storage"
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobStorageLocation",
+				"fileName": "ORDER DETAILS.csv",
+				"container": "input"
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": [
+			{
+				"name": "CUSTOMER ID",
+				"type": "String"
+			},
+			{
+				"name": "CUSTOMER ADDRESS",
+				"type": "String"
+			},
+			{
+				"name": "PRODUCT ID",
+				"type": "String"
+			},
+			{
+				"name": "NAME",
+				"type": "String"
+			},
+			{
+				"name": "CATEGORY",
+				"type": "String"
+			},
+			{
+				"name": "SUB CATEGORY",
+				"type": "String"
+			},
+			{
+				"name": "PRODUCT DESCRIPTION",
+				"type": "String"
+			},
+			{
+				"name": "UNIT SELL PRICE",
+				"type": "String"
+			},
+			{
+				"name": "CURRENCY",
+				"type": "String"
+			},
+			{
+				"name": "QUANTITY ORDERED",
+				"type": "String"
+			},
+			{
+				"name": "ORDER DATE",
+				"type": "String"
+			},
+			{
+				"name": "WAREHOUSE",
+				"type": "String"
+			}
+		]
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

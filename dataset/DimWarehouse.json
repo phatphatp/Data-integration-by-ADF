@@ -1,0 +1,42 @@
+{
+	"name": "DimWarehouse",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "output",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "SQL"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "WAREHOUSE_WK",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "WAREHOUSE_ID",
+				"type": "varchar"
+			},
+			{
+				"name": "NAME",
+				"type": "varchar"
+			},
+			{
+				"name": "LOCATION",
+				"type": "varchar"
+			},
+			{
+				"name": "ModifiedDate",
+				"type": "date"
+			}
+		],
+		"typeProperties": {
+			"schema": "prod",
+			"table": "DimWarehouse"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

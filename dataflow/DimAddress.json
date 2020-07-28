@@ -1,0 +1,51 @@
+{
+	"name": "DimAddress",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "CustomerTable",
+						"type": "DatasetReference"
+					},
+					"name": "LandingTable"
+				},
+				{
+					"dataset": {
+						"referenceName": "DimAddress",
+						"type": "DatasetReference"
+					},
+					"name": "DimAddress"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "DimAddress",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "Exist1"
+				},
+				{
+					"name": "AlterRow1"
+				},
+				{
+					"name": "Lookup1"
+				},
+				{
+					"name": "ModifiedDate"
+				},
+				{
+					"name": "Select1"
+				}
+			],
+			"script": "source(output(\n\t\tCUSTOMER_ID as integer,\n\t\tFULL_NAME as string,\n\t\tEMAIL as string,\n\t\tPHONE as string,\n\t\tADDRESS_LINE1 as string,\n\t\tADDRESS_LINE2 as string,\n\t\tCITY as string,\n\t\tSTATE as string,\n\t\tCOUNTRY as string,\n\t\tZIPCODE as string,\n\t\tADDRESS_TYPE as string\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tformat: 'table') ~> LandingTable\nsource(output(\n\t\tADDRESS_WK as integer,\n\t\tADDRESS_LINE1 as string,\n\t\tADDRESS_LINE2 as string,\n\t\tCITY as string,\n\t\tSTATE as string,\n\t\tCOUNTRY as string,\n\t\tZIPCODE as string,\n\t\tADDRESS_TYPE as string,\n\t\tModifiedDate as date\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tformat: 'table') ~> DimAddress\nLandingTable, DimAddress exists(LandingTable@ADDRESS_LINE1 == DimAddress@ADDRESS_LINE1\n\t&& LandingTable@ADDRESS_LINE2 == DimAddress@ADDRESS_LINE2,\n\tnegate:true,\n\tbroadcast: 'auto')~> Exist1\nSelect1 alterRow(upsertIf(true())) ~> AlterRow1\nExist1, DimAddress lookup(LandingTable@ADDRESS_LINE1 == DimAddress@ADDRESS_LINE1\n\t&& LandingTable@ADDRESS_LINE2 == DimAddress@ADDRESS_LINE2,\n\tmultiple: false,\n\tpickup: 'any',\n\tbroadcast: 'auto')~> Lookup1\nLookup1 derive(ModifiedDate = currentTimestamp()) ~> ModifiedDate\nModifiedDate select(mapColumn(\n\t\tADDRESS_LINE1 = {LandingTable@ADDRESS_LINE1},\n\t\tADDRESS_LINE2 = {LandingTable@ADDRESS_LINE2},\n\t\tCITY = {LandingTable@CITY},\n\t\tSTATE = {LandingTable@STATE},\n\t\tCOUNTRY = {LandingTable@COUNTRY},\n\t\tZIPCODE = {LandingTable@ZIPCODE},\n\t\tADDRESS_TYPE = {LandingTable@ADDRESS_TYPE},\n\t\tModifiedDate\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> Select1\nAlterRow1 sink(input(\n\t\tADDRESS_WK as integer,\n\t\tADDRESS_LINE1 as string,\n\t\tADDRESS_LINE2 as string,\n\t\tCITY as string,\n\t\tSTATE as string,\n\t\tCOUNTRY as string,\n\t\tZIPCODE as string,\n\t\tADDRESS_TYPE as string,\n\t\tModifiedDate as date\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tdeletable:false,\n\tinsertable:false,\n\tupdateable:false,\n\tupsertable:true,\n\tkeys:['ADDRESS_LINE1','ADDRESS_LINE2'],\n\tformat: 'table',\n\tmapColumn(\n\t\tADDRESS_LINE1,\n\t\tADDRESS_LINE2,\n\t\tCITY,\n\t\tSTATE,\n\t\tCOUNTRY,\n\t\tZIPCODE,\n\t\tADDRESS_TYPE,\n\t\tModifiedDate\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> sink1"
+		}
+	}
+}

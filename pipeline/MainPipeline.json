@@ -1,0 +1,197 @@
+{
+	"name": "MainPipeline",
+	"properties": {
+		"activities": [
+			{
+				"name": "LoadLandingTable",
+				"type": "ExecutePipeline",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "Load",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "LoadDimTable",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "LoadLandingTable",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "DimTable",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "LoadFactTable",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "LoadDimTable",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "FactTable",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "DailyReport",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "LoadFactTable",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "DailyReport",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "Sent Email",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "DailyReport",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": "https://prod-17.southeastasia.logic.azure.com:443/workflows/ee2ef7bbf9ba48b5874800cb70bde8b4/triggers/manual/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=a0NEDQ36xZUCzxmg9uPbCgjnCDeKsyuDtS74kW3x1kU",
+					"method": "POST",
+					"body": {
+						"value": "{\n\"Title\":\"PIPELINE RUN FINISHED\",\n\"Message\":\"DEMO-PIPELINE FINISHED RUNNING SUCCESSFULLY ( 2 DailyReport )\",\n\"Color\":\"Green\",\n\"DataFactoryName\":\"@{pipeline().DataFactory}\",\n\"PipelineName\":\"@{pipeline().Pipeline}\",\n\"PipeLineId\":\"@{pipeline().RunId}\",\n\"Time\":\"@{utcnow()}\"\n}",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Sent error email3",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "DailyReport",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": "https://prod-04.southeastasia.logic.azure.com:443/workflows/ac880e184263418eadd3ba15e9bf7ee3/triggers/manual/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=2GEVepc_1G4uMKqS6OqQAuv_vl1NBlyyJqUTj_Ix1EI",
+					"method": "POST",
+					"body": {
+						"value": "{\n\"Title\":\"PIPELINE RUN FAILED\",\n\"Message\":\"DEMO-PIPELINE FINISHED RUNNING FAILED!\",\n\"Color\":\"Red\",\n\"DataFactoryName\":\"@{pipeline().DataFactory}\",\n\"PipelineName\":\"@{pipeline().Pipeline}\",\n\"PipeLineId\":\"@{pipeline().RunId}\",\n\"Time\":\"@{utcnow()}\"\n}",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Sent error email2",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "LoadFactTable",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": "https://prod-04.southeastasia.logic.azure.com:443/workflows/ac880e184263418eadd3ba15e9bf7ee3/triggers/manual/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=2GEVepc_1G4uMKqS6OqQAuv_vl1NBlyyJqUTj_Ix1EI",
+					"method": "POST",
+					"body": {
+						"value": "{\n\"Title\":\"PIPELINE RUN FAILED\",\n\"Message\":\"DEMO-PIPELINE FINISHED RUNNING FAILED!\",\n\"Color\":\"Red\",\n\"DataFactoryName\":\"@{pipeline().DataFactory}\",\n\"PipelineName\":\"@{pipeline().Pipeline}\",\n\"PipeLineId\":\"@{pipeline().RunId}\",\n\"Time\":\"@{utcnow()}\"\n}",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Sent error email1",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "LoadDimTable",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": "https://prod-04.southeastasia.logic.azure.com:443/workflows/ac880e184263418eadd3ba15e9bf7ee3/triggers/manual/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=2GEVepc_1G4uMKqS6OqQAuv_vl1NBlyyJqUTj_Ix1EI",
+					"method": "POST",
+					"body": {
+						"value": "{\n\"Title\":\"PIPELINE RUN FAILED\",\n\"Message\":\"DEMO-PIPELINE FINISHED RUNNING FAILED!\",\n\"Color\":\"Red\",\n\"DataFactoryName\":\"@{pipeline().DataFactory}\",\n\"PipelineName\":\"@{pipeline().Pipeline}\",\n\"PipeLineId\":\"@{pipeline().RunId}\",\n\"Time\":\"@{utcnow()}\"\n}",
+						"type": "Expression"
+					}
+				}
+			}
+		],
+		"folder": {
+			"name": "Main"
+		},
+		"annotations": []
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

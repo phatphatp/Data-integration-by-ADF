@@ -1,0 +1,75 @@
+{
+	"name": "OrderTable",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "output",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "SQL"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "CUSTOMER_ID",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "CUSTOMER_ADDRESS",
+				"type": "varchar"
+			},
+			{
+				"name": "PRODUCT_ID",
+				"type": "varchar"
+			},
+			{
+				"name": "PNAME",
+				"type": "varchar"
+			},
+			{
+				"name": "CATEGORY",
+				"type": "varchar"
+			},
+			{
+				"name": "SUB_CATEGORY",
+				"type": "varchar"
+			},
+			{
+				"name": "PRODUCT_DESCRIPTION",
+				"type": "varchar"
+			},
+			{
+				"name": "UNIT_SELL_PRICE",
+				"type": "decimal",
+				"precision": 10,
+				"scale": 2
+			},
+			{
+				"name": "CURRENCY",
+				"type": "varchar"
+			},
+			{
+				"name": "QUANTITY_ORDERED",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "WAREHOUSE",
+				"type": "varchar"
+			},
+			{
+				"name": "ORDER_DATE",
+				"type": "datetime",
+				"precision": 23,
+				"scale": 3
+			}
+		],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "ORDER_DETAILS"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

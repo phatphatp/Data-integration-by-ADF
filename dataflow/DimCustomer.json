@@ -1,0 +1,54 @@
+{
+	"name": "DimCustomer",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "CustomerTable",
+						"type": "DatasetReference"
+					},
+					"name": "LandingTable"
+				},
+				{
+					"dataset": {
+						"referenceName": "DimCus",
+						"type": "DatasetReference"
+					},
+					"name": "DimCustomer"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "DimCus",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "DistinctRow"
+				},
+				{
+					"name": "AlterRow1"
+				},
+				{
+					"name": "Lookup1"
+				},
+				{
+					"name": "ModifyDate"
+				},
+				{
+					"name": "exist"
+				},
+				{
+					"name": "Select1"
+				}
+			],
+			"script": "source(output(\n\t\tCUSTOMER_ID as integer,\n\t\tFULL_NAME as string,\n\t\tEMAIL as string,\n\t\tPHONE as string,\n\t\tADDRESS_LINE1 as string,\n\t\tADDRESS_LINE2 as string,\n\t\tCITY as string,\n\t\tSTATE as string,\n\t\tCOUNTRY as string,\n\t\tZIPCODE as string,\n\t\tADDRESS_TYPE as string\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tformat: 'table') ~> LandingTable\nsource(output(\n\t\tCUSTOMER_WK as integer,\n\t\tCUSTOMER_ID as integer,\n\t\tFULL_NAME as string,\n\t\tEMAIL as string,\n\t\tPHONE as string,\n\t\tModifiedDate as date\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tformat: 'table') ~> DimCustomer\nSelect1 aggregate(groupBy(CUSTOMER_ID),\n\teach(match(name!='CUSTOMER_ID'), $$ = first($$))) ~> DistinctRow\nDistinctRow alterRow(upsertIf(true())) ~> AlterRow1\nexist, DimCustomer lookup(LandingTable@FULL_NAME == DimCustomer@FULL_NAME\n\t&& LandingTable@CUSTOMER_ID == DimCustomer@CUSTOMER_ID,\n\tmultiple: false,\n\tpickup: 'any',\n\tbroadcast: 'auto')~> Lookup1\nLookup1 derive(ModifiedDate = currentTimestamp()) ~> ModifyDate\nLandingTable, DimCustomer exists(LandingTable@CUSTOMER_ID == DimCustomer@CUSTOMER_ID\n\t&& LandingTable@FULL_NAME == DimCustomer@FULL_NAME,\n\tnegate:true,\n\tbroadcast: 'auto')~> exist\nModifyDate select(mapColumn(\n\t\tCUSTOMER_ID = {LandingTable@CUSTOMER_ID},\n\t\tFULL_NAME = {LandingTable@FULL_NAME},\n\t\tEMAIL = {LandingTable@EMAIL},\n\t\tPHONE = {LandingTable@PHONE},\n\t\tModifiedDate\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> Select1\nAlterRow1 sink(input(\n\t\tCUSTOMER_WK as integer,\n\t\tCUSTOMER_ID as integer,\n\t\tFULL_NAME as string,\n\t\tEMAIL as string,\n\t\tPHONE as string,\n\t\tModifiedDate as date\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tdeletable:false,\n\tinsertable:false,\n\tupdateable:false,\n\tupsertable:true,\n\tkeys:['CUSTOMER_ID'],\n\tformat: 'table',\n\tmapColumn(\n\t\tCUSTOMER_ID,\n\t\tFULL_NAME,\n\t\tEMAIL,\n\t\tPHONE,\n\t\tModifiedDate\n\t),\n\tpartitionBy('hash', 1),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> sink1"
+		}
+	}
+}

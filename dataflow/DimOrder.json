@@ -1,0 +1,54 @@
+{
+	"name": "DimOrder",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "OrderTable",
+						"type": "DatasetReference"
+					},
+					"name": "LandingTable"
+				},
+				{
+					"dataset": {
+						"referenceName": "DimOrder",
+						"type": "DatasetReference"
+					},
+					"name": "DimOrder"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "DimOrder",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "Exists1"
+				},
+				{
+					"name": "Lookup1"
+				},
+				{
+					"name": "ModifyDate"
+				},
+				{
+					"name": "Select1"
+				},
+				{
+					"name": "Distinct"
+				},
+				{
+					"name": "AlterRow1"
+				}
+			],
+			"script": "source(output(\n\t\tCUSTOMER_ID as integer,\n\t\tCUSTOMER_ADDRESS as string,\n\t\tPRODUCT_ID as string,\n\t\tPNAME as string,\n\t\tCATEGORY as string,\n\t\tSUB_CATEGORY as string,\n\t\tPRODUCT_DESCRIPTION as string,\n\t\tUNIT_SELL_PRICE as decimal(10,2),\n\t\tCURRENCY as string,\n\t\tQUANTITY_ORDERED as integer,\n\t\tWAREHOUSE as string,\n\t\tORDER_DATE as timestamp\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tformat: 'table') ~> LandingTable\nsource(output(\n\t\tORDER_WK as integer,\n\t\tORDER_DATE as timestamp,\n\t\tModifiedDate as date\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tformat: 'table') ~> DimOrder\nLandingTable, DimOrder exists(LandingTable@ORDER_DATE == DimOrder@ORDER_DATE,\n\tnegate:true,\n\tbroadcast: 'auto')~> Exists1\nExists1, DimOrder lookup(LandingTable@ORDER_DATE == DimOrder@ORDER_DATE,\n\tmultiple: false,\n\tpickup: 'any',\n\tbroadcast: 'auto')~> Lookup1\nLookup1 derive(ModifiedDate = currentTimestamp()) ~> ModifyDate\nModifyDate select(mapColumn(\n\t\tORDER_DATE = {LandingTable@ORDER_DATE},\n\t\tModifiedDate\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> Select1\nSelect1 aggregate(groupBy(ORDER_DATE),\n\teach(match(name!='ORDER_DATE'), $$ = first($$))) ~> Distinct\nDistinct alterRow(upsertIf(true())) ~> AlterRow1\nAlterRow1 sink(input(\n\t\tORDER_WK as integer,\n\t\tORDER_DATE as timestamp,\n\t\tModifiedDate as date\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tdeletable:false,\n\tinsertable:false,\n\tupdateable:false,\n\tupsertable:true,\n\tkeys:['ORDER_DATE'],\n\tformat: 'table',\n\tmapColumn(\n\t\tORDER_DATE,\n\t\tModifiedDate\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> sink1"
+		}
+	}
+}

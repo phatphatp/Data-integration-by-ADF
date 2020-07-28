@@ -1,0 +1,46 @@
+{
+	"name": "OrderIn_copy1",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "ORDER_DETAILS",
+						"type": "DatasetReference"
+					},
+					"name": "source1"
+				},
+				{
+					"dataset": {
+						"referenceName": "ORDER_DETAILS",
+						"type": "DatasetReference"
+					},
+					"name": "OrderTable"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "OrderTable",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				},
+				{
+					"dataset": {
+						"referenceName": "OrderTable",
+						"type": "DatasetReference"
+					},
+					"name": "sink2"
+				}
+			],
+			"transformations": [
+				{
+					"name": "DerivedColumn1"
+				}
+			],
+			"script": "source(output(\n\t\t{CUSTOMER ID} as short,\n\t\t{CUSTOMER ADDRESS} as string,\n\t\t{PRODUCT ID} as string,\n\t\tNAME as string,\n\t\tCATEGORY as string,\n\t\t{SUB CATEGORY} as string,\n\t\t{PRODUCT DESCRIPTION} as string,\n\t\t{UNIT SELL PRICE} as double,\n\t\tCURRENCY as string,\n\t\t{QUANTITY ORDERED} as short,\n\t\t{ORDER DATE} as string,\n\t\tWAREHOUSE as string\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false) ~> source1\nsource(output(\n\t\t{CUSTOMER ID} as string,\n\t\t{CUSTOMER ADDRESS} as string,\n\t\t{PRODUCT ID} as string,\n\t\tNAME as string,\n\t\tCATEGORY as string,\n\t\t{SUB CATEGORY} as string,\n\t\t{PRODUCT DESCRIPTION} as string,\n\t\t{UNIT SELL PRICE} as string,\n\t\tCURRENCY as string,\n\t\t{QUANTITY ORDERED} as string,\n\t\t{ORDER DATE} as timestamp 'MM/dd/yyyy',\n\t\tWAREHOUSE as string\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tinferDriftedColumnTypes: true,\n\ttimestampFormats: ['yyyy/MM/dd']) ~> OrderTable\nsource1 derive(WAREHOUSE = replace(replace(replace(replace(replace(replace(WAREHOUSE,'$',''),'#',''),'COMPUTER & CO','Computer & Co'),'TECHNO FIRST','Techno First'),'ENTERPRISE SOLUTIONS','Enterprise Solutions'),' ',''),\n\t\tNAME = replace(NAME,' ',''),\n\t\t{ORDER DATE} = toDate({ORDER DATE},'MM/dd/yyyy')) ~> DerivedColumn1\nDerivedColumn1 sink(input(\n\t\tCUSTOMER_ID as integer,\n\t\tCUSTOMER_ADDRESS as string,\n\t\tPRODUCT_ID as string,\n\t\tPNAME as string,\n\t\tCATEGORY as string,\n\t\tSUB_CATEGORY as string,\n\t\tPRODUCT_DESCRIPTION as string,\n\t\tUNIT_SELL_PRICE as decimal(10,2),\n\t\tCURRENCY as string,\n\t\tQUANTITY_ORDERED as integer,\n\t\tWAREHOUSE as string,\n\t\tORDER_DATE as timestamp\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tdeletable:false,\n\tinsertable:true,\n\tupdateable:false,\n\tupsertable:false,\n\tformat: 'table',\n\tmapColumn(\n\t\tCATEGORY,\n\t\tCURRENCY,\n\t\tWAREHOUSE,\n\t\tORDER_DATE = {ORDER DATE}\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> sink1\nOrderTable sink(input(\n\t\tCUSTOMER_ID as integer,\n\t\tCUSTOMER_ADDRESS as string,\n\t\tPRODUCT_ID as string,\n\t\tPNAME as string,\n\t\tCATEGORY as string,\n\t\tSUB_CATEGORY as string,\n\t\tPRODUCT_DESCRIPTION as string,\n\t\tUNIT_SELL_PRICE as decimal(10,2),\n\t\tCURRENCY as string,\n\t\tQUANTITY_ORDERED as integer,\n\t\tWAREHOUSE as string,\n\t\tORDER_DATE as timestamp\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tdeletable:false,\n\tinsertable:true,\n\tupdateable:false,\n\tupsertable:false,\n\tformat: 'table',\n\tmapColumn(\n\t\tCUSTOMER_ID = {CUSTOMER ID},\n\t\tCUSTOMER_ADDRESS = {CUSTOMER ADDRESS},\n\t\tPRODUCT_ID = {PRODUCT ID},\n\t\tPNAME = NAME,\n\t\tCATEGORY,\n\t\tSUB_CATEGORY = {SUB CATEGORY},\n\t\tPRODUCT_DESCRIPTION = {PRODUCT DESCRIPTION},\n\t\tUNIT_SELL_PRICE = {UNIT SELL PRICE},\n\t\tCURRENCY,\n\t\tQUANTITY_ORDERED = {QUANTITY ORDERED},\n\t\tWAREHOUSE,\n\t\tORDER_DATE = {ORDER DATE}\n\t),\n\ttimestampFormat:'yyyy/MM/dd',\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> sink2"
+		}
+	}
+}

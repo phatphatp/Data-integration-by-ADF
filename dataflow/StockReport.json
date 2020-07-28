@@ -1,0 +1,63 @@
+{
+	"name": "StockReport",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "Stock_Fact",
+						"type": "DatasetReference"
+					},
+					"name": "source1"
+				},
+				{
+					"dataset": {
+						"referenceName": "DimDate",
+						"type": "DatasetReference"
+					},
+					"name": "DimDate"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "StockReport",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "SumQuantity"
+				},
+				{
+					"name": "Lookup2"
+				},
+				{
+					"name": "Select2"
+				},
+				{
+					"name": "Filter1"
+				},
+				{
+					"name": "DerivedColumn1"
+				},
+				{
+					"name": "OriData"
+				},
+				{
+					"name": "Lookup3"
+				},
+				{
+					"name": "Select3"
+				},
+				{
+					"name": "Flag"
+				}
+			],
+			"script": "source(output(\n\t\tPRODUCT_WK as integer,\n\t\tWAREHOUSE_WK as integer,\n\t\tTOTAL_STOCK as integer,\n\t\tREORDER_STOCK as integer,\n\t\tCURRENT_STOCK as integer,\n\t\tOrderDate as integer,\n\t\tFlag as integer,\n\t\tModifiedDate as date\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tformat: 'table') ~> source1\nsource(output(\n\t\tDay_WK as integer,\n\t\tMonth_WK as integer,\n\t\tFullDate as timestamp,\n\t\tYear_Code as integer,\n\t\tMonth_Code as integer,\n\t\tMonth_Name as string,\n\t\tWeekDay_Code as integer,\n\t\tDay_Name as string,\n\t\tIs_WeekDay as boolean,\n\t\tNumberOfWorkDays as integer\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tformat: 'table') ~> DimDate\nFilter1 aggregate(groupBy(OrderDate,\n\t\tPRODUCT_WK,\n\t\tWAREHOUSE_WK),\n\tQuantityStock = sum(QuantityStock)) ~> SumQuantity\nsource1, DimDate lookup(OrderDate == Day_WK,\n\tmultiple: false,\n\tpickup: 'any',\n\tbroadcast: 'auto')~> Lookup2\nLookup2 select(mapColumn(\n\t\tPRODUCT_WK,\n\t\tWAREHOUSE_WK,\n\t\tREORDER_STOCK,\n\t\tCURRENT_STOCK,\n\t\tOrderDate,\n\t\tFlag,\n\t\tFullDate,\n\t\tTOTAL_STOCK\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> Select2\nDerivedColumn1 filter(FullDate == currentDate()) ~> Filter1\nSelect2 derive(FullDate = toDate(toString(FullDate,'yyyy-MM-dd')),\n\t\tQuantityStock = TOTAL_STOCK - CURRENT_STOCK) ~> DerivedColumn1\nFilter1 select(mapColumn(\n\t\tPRODUCT_WK,\n\t\tWAREHOUSE_WK,\n\t\tREORDER_STOCK,\n\t\tCURRENT_STOCK,\n\t\tOrderDate,\n\t\tFlag,\n\t\tFullDate,\n\t\tTOTAL_STOCK,\n\t\tQuantityStock\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> OriData\nSumQuantity, OriData lookup(SumQuantity@PRODUCT_WK == OriData@PRODUCT_WK\n\t&& SumQuantity@WAREHOUSE_WK == OriData@WAREHOUSE_WK\n\t&& SumQuantity@OrderDate == OriData@OrderDate,\n\tmultiple: false,\n\tpickup: 'any',\n\tbroadcast: 'auto')~> Lookup3\nLookup3 select(mapColumn(\n\t\tOrderDate = {SumQuantity@OrderDate},\n\t\tPRODUCT_WK = {SumQuantity@PRODUCT_WK},\n\t\tWAREHOUSE_WK = {SumQuantity@WAREHOUSE_WK},\n\t\tQuantityStock = {SumQuantity@QuantityStock},\n\t\tREORDER_STOCK,\n\t\tCURRENT_STOCK,\n\t\tTOTAL_STOCK\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> Select3\nSelect3 derive(Flag = iif(lesserOrEqual(CURRENT_STOCK,REORDER_STOCK),1,0),\n\t\tCURRENT_STOCK = TOTAL_STOCK - QuantityStock) ~> Flag\nFlag sink(input(\n\t\tOrderDate as integer,\n\t\tPRODUCT_WK as integer,\n\t\tWAREHOUSE_WK as integer,\n\t\tREORDER_STOCK as integer,\n\t\tCURRENT_STOCK as integer,\n\t\tFlag as integer\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tdeletable:false,\n\tinsertable:true,\n\tupdateable:false,\n\tupsertable:false,\n\tformat: 'table',\n\tpreSQLs:['delete from [out].[StockReport]'],\n\tmapColumn(\n\t\tOrderDate,\n\t\tPRODUCT_WK,\n\t\tWAREHOUSE_WK,\n\t\tREORDER_STOCK,\n\t\tCURRENT_STOCK,\n\t\tFlag\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> sink1"
+		}
+	}
+}

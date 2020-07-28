@@ -1,0 +1,51 @@
+{
+	"name": "StockReport",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "output",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "SQL"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "OrderDate",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "PRODUCT_WK",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "WAREHOUSE_WK",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "REORDER_STOCK",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "CURRENT_STOCK",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "Flag",
+				"type": "int",
+				"precision": 10
+			}
+		],
+		"typeProperties": {
+			"schema": "out",
+			"table": "StockReport"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

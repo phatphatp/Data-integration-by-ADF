@@ -1,0 +1,39 @@
+{
+	"name": "DimCustAddress",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "output",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "SQL"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "ADDRESS_TYPE",
+				"type": "varchar"
+			},
+			{
+				"name": "CUSTOMER_WK",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "ADDRESS_WK",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "ModifiedDate",
+				"type": "date"
+			}
+		],
+		"typeProperties": {
+			"schema": "prod",
+			"table": "DimCustAdd"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

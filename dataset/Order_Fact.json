@@ -1,0 +1,61 @@
+{
+	"name": "Order_Fact",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "output",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "SQL"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "OrderDate",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "CUSTOMER_WK",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "ORDER_WK",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "PRODUCT_WK",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "QUANTITY_ORDERED",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "AMOUNT",
+				"type": "decimal",
+				"precision": 10,
+				"scale": 2
+			},
+			{
+				"name": "WAREHOUSE_WK",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "ModifiedDate",
+				"type": "date"
+			}
+		],
+		"typeProperties": {
+			"schema": "prod",
+			"table": "Order_Fact"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

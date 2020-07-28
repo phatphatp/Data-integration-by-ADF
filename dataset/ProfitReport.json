@@ -1,0 +1,41 @@
+{
+	"name": "ProfitReport",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "output",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "SQL"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "OrderDate",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "PRODUCT_WK",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "PRODUCT_NAME",
+				"type": "varchar"
+			},
+			{
+				"name": "PROFIT",
+				"type": "decimal",
+				"precision": 10,
+				"scale": 2
+			}
+		],
+		"typeProperties": {
+			"schema": "out",
+			"table": "ProfitReport"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

@@ -1,0 +1,69 @@
+{
+	"name": "DimDate",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "DimDate",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "SQL"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "Day_WK",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "Month_WK",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "FullDate",
+				"type": "datetime",
+				"precision": 23,
+				"scale": 3
+			},
+			{
+				"name": "Year_Code",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "Month_Code",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "Month_Name",
+				"type": "nvarchar"
+			},
+			{
+				"name": "WeekDay_Code",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "Day_Name",
+				"type": "nvarchar"
+			},
+			{
+				"name": "Is_WeekDay",
+				"type": "bit"
+			},
+			{
+				"name": "NumberOfWorkDays",
+				"type": "int",
+				"precision": 10
+			}
+		],
+		"typeProperties": {
+			"schema": "dim",
+			"table": "Date"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

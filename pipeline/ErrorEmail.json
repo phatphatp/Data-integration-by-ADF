@@ -1,0 +1,33 @@
+{
+	"name": "ErrorEmail",
+	"properties": {
+		"activities": [
+			{
+				"name": "Web1",
+				"type": "WebActivity",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": "https://prod-04.southeastasia.logic.azure.com:443/workflows/ac880e184263418eadd3ba15e9bf7ee3/triggers/manual/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=2GEVepc_1G4uMKqS6OqQAuv_vl1NBlyyJqUTj_Ix1EI",
+					"method": "POST",
+					"body": {
+						"value": "{\n\"Title\":\"PIPELINE RUN FAILED\",\n\"Message\":\"DEMO-PIPELINE FINISHED RUNNING FAILED!\",\n\"Color\":\"Red\",\n\"DataFactoryName\":\"@{pipeline().DataFactory}\",\n\"PipelineName\":\"@{pipeline().Pipeline}\",\n\"PipeLineId\":\"@{pipeline().RunId}\",\n\"Time\":\"@{utcnow()}\"\n}",
+						"type": "Expression"
+					}
+				}
+			}
+		],
+		"folder": {
+			"name": "Main"
+		},
+		"annotations": []
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

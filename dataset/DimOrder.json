@@ -1,0 +1,36 @@
+{
+	"name": "DimOrder",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "output",
+			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "SQL"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "ORDER_WK",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "ORDER_DATE",
+				"type": "datetime",
+				"precision": 23,
+				"scale": 3
+			},
+			{
+				"name": "ModifiedDate",
+				"type": "date"
+			}
+		],
+		"typeProperties": {
+			"schema": "prod",
+			"table": "DimOrder"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

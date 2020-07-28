@@ -1,0 +1,54 @@
+{
+	"name": "DimProduct",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "OrderTable",
+						"type": "DatasetReference"
+					},
+					"name": "LandingTable"
+				},
+				{
+					"dataset": {
+						"referenceName": "DimProduct",
+						"type": "DatasetReference"
+					},
+					"name": "DimProduct"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "DimProduct",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "Exists1"
+				},
+				{
+					"name": "Lookup1"
+				},
+				{
+					"name": "Modifydate"
+				},
+				{
+					"name": "Select1"
+				},
+				{
+					"name": "Distinct"
+				},
+				{
+					"name": "AlterRow1"
+				}
+			],
+			"script": "source(output(\n\t\tCUSTOMER_ID as integer,\n\t\tCUSTOMER_ADDRESS as string,\n\t\tPRODUCT_ID as string,\n\t\tPNAME as string,\n\t\tCATEGORY as string,\n\t\tSUB_CATEGORY as string,\n\t\tPRODUCT_DESCRIPTION as string,\n\t\tUNIT_SELL_PRICE as decimal(10,2),\n\t\tCURRENCY as string,\n\t\tQUANTITY_ORDERED as integer,\n\t\tWAREHOUSE as string,\n\t\tORDER_DATE as timestamp\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tformat: 'table') ~> LandingTable\nsource(output(\n\t\tPRODUCT_WK as integer,\n\t\tPRODUCT_ID as string,\n\t\tNAME as string,\n\t\tPRODUCT_DES as string,\n\t\tUNIT_PRICE as decimal(10,2),\n\t\tModifiedDate as date\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tformat: 'table') ~> DimProduct\nLandingTable, DimProduct exists(LandingTable@PRODUCT_ID == DimProduct@PRODUCT_ID,\n\tnegate:true,\n\tbroadcast: 'auto')~> Exists1\nExists1, DimProduct lookup(LandingTable@PRODUCT_ID == DimProduct@PRODUCT_ID,\n\tmultiple: false,\n\tpickup: 'any',\n\tbroadcast: 'auto')~> Lookup1\nLookup1 derive(ModifiedDate = currentTimestamp()) ~> Modifydate\nModifydate select(mapColumn(\n\t\tPRODUCT_ID = {LandingTable@PRODUCT_ID},\n\t\tNAME = PNAME,\n\t\tPRODUCT_DES = PRODUCT_DESCRIPTION,\n\t\tUNIT_PRICE = UNIT_SELL_PRICE,\n\t\tModifiedDate\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> Select1\nSelect1 aggregate(groupBy(PRODUCT_ID),\n\teach(match(name!='PRODUCT_ID'), $$ = first($$))) ~> Distinct\nDistinct alterRow(upsertIf(true())) ~> AlterRow1\nAlterRow1 sink(input(\n\t\tPRODUCT_WK as integer,\n\t\tPRODUCT_ID as string,\n\t\tNAME as string,\n\t\tPRODUCT_DES as string,\n\t\tUNIT_PRICE as decimal(10,2),\n\t\tModifiedDate as date\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tdeletable:false,\n\tinsertable:false,\n\tupdateable:false,\n\tupsertable:true,\n\tkeys:['PRODUCT_ID','NAME'],\n\tformat: 'table',\n\tmapColumn(\n\t\tPRODUCT_ID,\n\t\tNAME,\n\t\tPRODUCT_DES,\n\t\tUNIT_PRICE,\n\t\tModifiedDate\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> sink1"
+		}
+	}
+}

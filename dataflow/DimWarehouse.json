@@ -1,0 +1,54 @@
+{
+	"name": "DimWarehouse",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "WarehouseTable",
+						"type": "DatasetReference"
+					},
+					"name": "LandingTable"
+				},
+				{
+					"dataset": {
+						"referenceName": "DimWarehouse",
+						"type": "DatasetReference"
+					},
+					"name": "DimWarehouse"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "DimWarehouse",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "Distinct"
+				},
+				{
+					"name": "Exists1"
+				},
+				{
+					"name": "Lookup1"
+				},
+				{
+					"name": "ModifyDate"
+				},
+				{
+					"name": "Select2"
+				},
+				{
+					"name": "AlterRow1"
+				}
+			],
+			"script": "source(output(\n\t\tWAREHOUSE_ID as string,\n\t\tNAME as string,\n\t\tLOCATION as string,\n\t\tPRODUCT_NAME as string,\n\t\tTOTAL_STOCK as integer,\n\t\tREORDER_POINT as integer\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tformat: 'table') ~> LandingTable\nsource(output(\n\t\tWAREHOUSE_WK as integer,\n\t\tWAREHOUSE_ID as string,\n\t\tNAME as string,\n\t\tLOCATION as string,\n\t\tModifiedDate as date\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tformat: 'table') ~> DimWarehouse\nSelect2 aggregate(groupBy(WAREHOUSE_ID),\n\teach(match(name!='WAREHOUSE_ID'), $$ = first($$)),\n\tpartitionBy('hash', 1)) ~> Distinct\nLandingTable, DimWarehouse exists(LandingTable@WAREHOUSE_ID == DimWarehouse@WAREHOUSE_ID,\n\tnegate:true,\n\tbroadcast: 'auto')~> Exists1\nExists1, DimWarehouse lookup(LandingTable@WAREHOUSE_ID == DimWarehouse@WAREHOUSE_ID,\n\tmultiple: false,\n\tpickup: 'any',\n\tbroadcast: 'auto')~> Lookup1\nLookup1 derive(ModifiedDate = currentTimestamp()) ~> ModifyDate\nModifyDate select(mapColumn(\n\t\tWAREHOUSE_ID = {LandingTable@WAREHOUSE_ID},\n\t\tNAME = {LandingTable@NAME},\n\t\tLOCATION = {LandingTable@LOCATION},\n\t\tPRODUCT_NAME,\n\t\tModifiedDate\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> Select2\nDistinct alterRow(upsertIf(true())) ~> AlterRow1\nAlterRow1 sink(input(\n\t\tWAREHOUSE_WK as integer,\n\t\tWAREHOUSE_ID as string,\n\t\tNAME as string,\n\t\tLOCATION as string,\n\t\tModifiedDate as date\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tdeletable:false,\n\tinsertable:false,\n\tupdateable:false,\n\tupsertable:true,\n\tkeys:['WAREHOUSE_ID','NAME'],\n\tformat: 'table',\n\tmapColumn(\n\t\tWAREHOUSE_ID,\n\t\tNAME,\n\t\tLOCATION,\n\t\tModifiedDate\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> sink1"
+		}
+	}
+}

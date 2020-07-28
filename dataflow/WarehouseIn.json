@@ -1,0 +1,45 @@
+{
+	"name": "WarehouseIn",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "WAREHOUSE",
+						"type": "DatasetReference"
+					},
+					"name": "source1"
+				},
+				{
+					"dataset": {
+						"referenceName": "WarehouseTable",
+						"type": "DatasetReference"
+					},
+					"name": "WarehouseTable"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "WarehouseTable",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "DerivedColumn1"
+				},
+				{
+					"name": "Exists1"
+				},
+				{
+					"name": "AlterRow1"
+				}
+			],
+			"script": "source(output(\n\t\tWAREHOUSE_ID as string,\n\t\tNAME as string,\n\t\tLOCATION as string,\n\t\t{PRODUCT_NAME } as string,\n\t\t{TOTAL STOCK} as string,\n\t\t{REORDER POINT} as string\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false) ~> source1\nsource(output(\n\t\tWAREHOUSE_ID as string,\n\t\tNAME as string,\n\t\tLOCATION as string,\n\t\tPRODUCT_NAME as string,\n\t\tTOTAL_STOCK as integer,\n\t\tREORDER_POINT as integer\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tformat: 'table') ~> WarehouseTable\nsource1 derive({PRODUCT_NAME } = replace(replace(replace(replace({PRODUCT_NAME },'FLASH CHARGER','Flash Charger'),'FLASH DESKTOP','Flash Desktop'),' ',''),'#',''),\n\t\tNAME = replace(replace(replace(NAME,'DIGITAL AGE','Digital Age'),'TECHNO FIRST','Techno First'),' ','')) ~> DerivedColumn1\nDerivedColumn1, WarehouseTable exists(source1@WAREHOUSE_ID == WarehouseTable@WAREHOUSE_ID\n\t&& DerivedColumn1@NAME == WarehouseTable@NAME\n\t&& {PRODUCT_NAME } == PRODUCT_NAME,\n\tnegate:true,\n\tbroadcast: 'auto')~> Exists1\nExists1 alterRow(insertIf(true())) ~> AlterRow1\nAlterRow1 sink(input(\n\t\tWAREHOUSE_ID as string,\n\t\tNAME as string,\n\t\tLOCATION as string,\n\t\tPRODUCT_NAME as string,\n\t\tTOTAL_STOCK as integer,\n\t\tREORDER_POINT as integer\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tdeletable:false,\n\tinsertable:true,\n\tupdateable:false,\n\tupsertable:false,\n\tformat: 'table',\n\tmapColumn(\n\t\tWAREHOUSE_ID,\n\t\tNAME,\n\t\tLOCATION,\n\t\tPRODUCT_NAME = {PRODUCT_NAME },\n\t\tTOTAL_STOCK = {TOTAL STOCK},\n\t\tREORDER_POINT = {REORDER POINT}\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> sink1"
+		}
+	}
+}

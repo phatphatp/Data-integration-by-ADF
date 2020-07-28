@@ -1,0 +1,45 @@
+{
+	"name": "OrderIn",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "ORDER_DETAILS",
+						"type": "DatasetReference"
+					},
+					"name": "source1"
+				},
+				{
+					"dataset": {
+						"referenceName": "OrderTable",
+						"type": "DatasetReference"
+					},
+					"name": "OrderTable"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "OrderTable",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "DerivedColumn1"
+				},
+				{
+					"name": "Exists1"
+				},
+				{
+					"name": "AlterRow1"
+				}
+			],
+			"script": "source(output(\n\t\t{CUSTOMER ID} as short,\n\t\t{CUSTOMER ADDRESS} as string,\n\t\t{PRODUCT ID} as string,\n\t\tNAME as string,\n\t\tCATEGORY as string,\n\t\t{SUB CATEGORY} as string,\n\t\t{PRODUCT DESCRIPTION} as string,\n\t\t{UNIT SELL PRICE} as double,\n\t\tCURRENCY as string,\n\t\t{QUANTITY ORDERED} as short,\n\t\t{ORDER DATE} as date 'MM/dd/yyyy',\n\t\tWAREHOUSE as string\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false) ~> source1\nsource(output(\n\t\tCUSTOMER_ID as integer,\n\t\tCUSTOMER_ADDRESS as string,\n\t\tPRODUCT_ID as string,\n\t\tPNAME as string,\n\t\tCATEGORY as string,\n\t\tSUB_CATEGORY as string,\n\t\tPRODUCT_DESCRIPTION as string,\n\t\tUNIT_SELL_PRICE as decimal(10,2),\n\t\tCURRENCY as string,\n\t\tQUANTITY_ORDERED as integer,\n\t\tWAREHOUSE as string,\n\t\tORDER_DATE as timestamp\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tformat: 'table') ~> OrderTable\nsource1 derive(WAREHOUSE = replace(replace(replace(replace(replace(replace(WAREHOUSE,'$',''),'#',''),'COMPUTER & CO','Computer & Co'),'TECHNO FIRST','Techno First'),'ENTERPRISE SOLUTIONS','Enterprise Solutions'),' ',''),\n\t\tNAME = replace(NAME,' ','')) ~> DerivedColumn1\nDerivedColumn1, OrderTable exists({CUSTOMER ID} == CUSTOMER_ID\n\t&& {PRODUCT ID} == PRODUCT_ID\n\t&& DerivedColumn1@WAREHOUSE == OrderTable@WAREHOUSE\n\t&& {QUANTITY ORDERED} == QUANTITY_ORDERED,\n\tnegate:true,\n\tbroadcast: 'auto')~> Exists1\nExists1 alterRow(insertIf(true())) ~> AlterRow1\nAlterRow1 sink(input(\n\t\tCUSTOMER_ID as integer,\n\t\tCUSTOMER_ADDRESS as string,\n\t\tPRODUCT_ID as string,\n\t\tPNAME as string,\n\t\tCATEGORY as string,\n\t\tSUB_CATEGORY as string,\n\t\tPRODUCT_DESCRIPTION as string,\n\t\tUNIT_SELL_PRICE as decimal(10,2),\n\t\tCURRENCY as string,\n\t\tQUANTITY_ORDERED as integer,\n\t\tWAREHOUSE as string,\n\t\tORDER_DATE as timestamp\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tdeletable:false,\n\tinsertable:true,\n\tupdateable:false,\n\tupsertable:false,\n\tformat: 'table',\n\tmapColumn(\n\t\tCUSTOMER_ID = {CUSTOMER ID},\n\t\tCUSTOMER_ADDRESS = {CUSTOMER ADDRESS},\n\t\tPRODUCT_ID = {PRODUCT ID},\n\t\tPNAME = NAME,\n\t\tCATEGORY,\n\t\tSUB_CATEGORY = {SUB CATEGORY},\n\t\tPRODUCT_DESCRIPTION = {PRODUCT DESCRIPTION},\n\t\tUNIT_SELL_PRICE = {UNIT SELL PRICE},\n\t\tCURRENCY,\n\t\tQUANTITY_ORDERED = {QUANTITY ORDERED},\n\t\tWAREHOUSE,\n\t\tORDER_DATE = {ORDER DATE}\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> sink1"
+		}
+	}
+}
