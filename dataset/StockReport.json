@@ -13,7 +13,8 @@
 		"schema": [
 			{
 				"name": "OrderDate",
-				"type": "date"
+				"type": "int",
+				"precision": 10
 			},
 			{
 				"name": "PRODUCT_NAME",
