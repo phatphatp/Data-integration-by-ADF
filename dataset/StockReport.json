@@ -17,17 +17,15 @@
 				"precision": 10
 			},
 			{
-				"name": "PRODUCT_WK",
-				"type": "int",
-				"precision": 10
+				"name": "PRODUCT_NAME",
+				"type": "varchar"
 			},
 			{
-				"name": "WAREHOUSE_WK",
-				"type": "int",
-				"precision": 10
+				"name": "WAREHOUSE_NAME",
+				"type": "varchar"
 			},
 			{
-				"name": "REORDER_STOCK",
+				"name": "REORDERD_STOCK",
 				"type": "int",
 				"precision": 10
 			},
