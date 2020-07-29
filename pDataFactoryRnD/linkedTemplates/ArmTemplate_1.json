@@ -1,0 +1,1744 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "pDataFactoryRnD"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/WAREHOUSE')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "Inputfile",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "blob storage"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobStorageLocation",
+						"fileName": "WAREHOUSE.csv",
+						"container": "input"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "WAREHOUSE_ID",
+						"type": "String"
+					},
+					{
+						"name": "NAME",
+						"type": "String"
+					},
+					{
+						"name": "LOCATION",
+						"type": "String"
+					},
+					{
+						"name": "PRODUCT_NAME ",
+						"type": "String"
+					},
+					{
+						"name": "TOTAL STOCK",
+						"type": "String"
+					},
+					{
+						"name": "REORDER POINT",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/WarehouseTable')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "output",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "SQL"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "WAREHOUSE_ID",
+						"type": "varchar"
+					},
+					{
+						"name": "NAME",
+						"type": "varchar"
+					},
+					{
+						"name": "LOCATION",
+						"type": "varchar"
+					},
+					{
+						"name": "PRODUCT_NAME",
+						"type": "varchar"
+					},
+					{
+						"name": "TOTAL_STOCK",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "REORDER_POINT",
+						"type": "int",
+						"precision": 10
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "WAREHOUSE"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/archive')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "Inputfile",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"filename": {
+						"type": "string"
+					}
+				},
+				"folder": {
+					"name": "blob storage"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobStorageLocation",
+						"fileName": {
+							"value": "@dataset().filename",
+							"type": "Expression"
+						},
+						"container": "archive"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/CustomerIn')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "CUSTOMER",
+								"type": "DatasetReference"
+							},
+							"name": "Customer"
+						},
+						{
+							"dataset": {
+								"referenceName": "CustomerTable",
+								"type": "DatasetReference"
+							},
+							"name": "CusTable"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "CustomerTable",
+								"type": "DatasetReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "DerivedColumn1"
+						},
+						{
+							"name": "Filter2"
+						},
+						{
+							"name": "Select1"
+						},
+						{
+							"name": "AlterRow1"
+						},
+						{
+							"name": "Exists1"
+						}
+					],
+					"script": "source(output(\n\t\tCUSTOMER_ID as integer,\n\t\tFIRST_NAME as string,\n\t\tLAST_NAME as string,\n\t\tPHONE as string,\n\t\tEMAIL as string,\n\t\t{ADDRESS LINE 1} as string,\n\t\t{ADDRESS LINE 2} as string,\n\t\tCITY as string,\n\t\tSTATE as string,\n\t\tCOUNTRY as string,\n\t\tZIPCODE as string,\n\t\t{ADDRESS TYPE} as string\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false) ~> Customer\nsource(output(\n\t\tCUSTOMER_ID as integer,\n\t\tFULL_NAME as string,\n\t\tEMAIL as string,\n\t\tPHONE as string,\n\t\tADDRESS_LINE1 as string,\n\t\tADDRESS_LINE2 as string,\n\t\tCITY as string,\n\t\tSTATE as string,\n\t\tCOUNTRY as string,\n\t\tZIPCODE as string,\n\t\tADDRESS_TYPE as string\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tformat: 'table') ~> CusTable\nCustomer derive(FULL_NAME = FIRST_NAME+' '+LAST_NAME) ~> DerivedColumn1\nExists1 filter(!isNull(EMAIL),\n\tpartitionBy('hash', 1)) ~> Filter2\nDerivedColumn1 select(mapColumn(\n\t\tCUSTOMER_ID,\n\t\tFIRST_NAME,\n\t\tLAST_NAME,\n\t\tPHONE,\n\t\tEMAIL,\n\t\t{ADDRESS_LINE 1} = {ADDRESS LINE 1},\n\t\t{ADDRESS_LINE 2} = {ADDRESS LINE 2},\n\t\tCITY,\n\t\tSTATE,\n\t\tCOUNTRY,\n\t\tZIPCODE,\n\t\tADDRESS_TYPE = {ADDRESS TYPE},\n\t\tFULL_NAME\n\t),\n\tpartitionBy('hash', 1),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> Select1\nFilter2 alterRow(insertIf(true())) ~> AlterRow1\nSelect1, CusTable exists(Select1@CUSTOMER_ID == CusTable@CUSTOMER_ID\n\t&& Select1@COUNTRY == CusTable@COUNTRY\n\t&& Select1@STATE == CusTable@STATE\n\t&& Select1@ADDRESS_TYPE == CusTable@ADDRESS_TYPE,\n\tnegate:true,\n\tbroadcast: 'auto')~> Exists1\nAlterRow1 sink(input(\n\t\tCUSTOMER_ID as integer,\n\t\tFULL_NAME as string,\n\t\tEMAIL as string,\n\t\tPHONE as string,\n\t\tADDRESS_LINE1 as string,\n\t\tADDRESS_LINE2 as string,\n\t\tCITY as string,\n\t\tSTATE as string,\n\t\tCOUNTRY as string,\n\t\tZIPCODE as string,\n\t\tADDRESS_TYPE as string\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tdeletable:false,\n\tinsertable:true,\n\tupdateable:false,\n\tupsertable:false,\n\tformat: 'table',\n\tmapColumn(\n\t\tCUSTOMER_ID,\n\t\tFULL_NAME,\n\t\tEMAIL,\n\t\tPHONE,\n\t\tADDRESS_LINE1 = {ADDRESS_LINE 1},\n\t\tADDRESS_LINE2 = {ADDRESS_LINE 2},\n\t\tCITY,\n\t\tSTATE,\n\t\tCOUNTRY,\n\t\tZIPCODE,\n\t\tADDRESS_TYPE\n\t),\n\tpartitionBy('hash', 1),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> sink1"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DimAddress')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "CustomerTable",
+								"type": "DatasetReference"
+							},
+							"name": "LandingTable"
+						},
+						{
+							"dataset": {
+								"referenceName": "DimAddress",
+								"type": "DatasetReference"
+							},
+							"name": "DimAddress"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "DimAddress",
+								"type": "DatasetReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "Exist1"
+						},
+						{
+							"name": "AlterRow1"
+						},
+						{
+							"name": "Lookup1"
+						},
+						{
+							"name": "ModifiedDate"
+						},
+						{
+							"name": "Select1"
+						}
+					],
+					"script": "source(output(\n\t\tCUSTOMER_ID as integer,\n\t\tFULL_NAME as string,\n\t\tEMAIL as string,\n\t\tPHONE as string,\n\t\tADDRESS_LINE1 as string,\n\t\tADDRESS_LINE2 as string,\n\t\tCITY as string,\n\t\tSTATE as string,\n\t\tCOUNTRY as string,\n\t\tZIPCODE as string,\n\t\tADDRESS_TYPE as string\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tformat: 'table') ~> LandingTable\nsource(output(\n\t\tADDRESS_WK as integer,\n\t\tADDRESS_LINE1 as string,\n\t\tADDRESS_LINE2 as string,\n\t\tCITY as string,\n\t\tSTATE as string,\n\t\tCOUNTRY as string,\n\t\tZIPCODE as string,\n\t\tADDRESS_TYPE as string,\n\t\tModifiedDate as date\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tformat: 'table') ~> DimAddress\nLandingTable, DimAddress exists(LandingTable@ADDRESS_LINE1 == DimAddress@ADDRESS_LINE1\n\t&& LandingTable@ADDRESS_LINE2 == DimAddress@ADDRESS_LINE2,\n\tnegate:true,\n\tbroadcast: 'auto')~> Exist1\nSelect1 alterRow(upsertIf(true())) ~> AlterRow1\nExist1, DimAddress lookup(LandingTable@ADDRESS_LINE1 == DimAddress@ADDRESS_LINE1\n\t&& LandingTable@ADDRESS_LINE2 == DimAddress@ADDRESS_LINE2,\n\tmultiple: false,\n\tpickup: 'any',\n\tbroadcast: 'auto')~> Lookup1\nLookup1 derive(ModifiedDate = currentTimestamp()) ~> ModifiedDate\nModifiedDate select(mapColumn(\n\t\tADDRESS_LINE1 = LandingTable@ADDRESS_LINE1,\n\t\tADDRESS_LINE2 = LandingTable@ADDRESS_LINE2,\n\t\tCITY = LandingTable@CITY,\n\t\tSTATE = LandingTable@STATE,\n\t\tCOUNTRY = LandingTable@COUNTRY,\n\t\tZIPCODE = LandingTable@ZIPCODE,\n\t\tADDRESS_TYPE = LandingTable@ADDRESS_TYPE,\n\t\tModifiedDate\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> Select1\nAlterRow1 sink(input(\n\t\tADDRESS_WK as integer,\n\t\tADDRESS_LINE1 as string,\n\t\tADDRESS_LINE2 as string,\n\t\tCITY as string,\n\t\tSTATE as string,\n\t\tCOUNTRY as string,\n\t\tZIPCODE as string,\n\t\tADDRESS_TYPE as string,\n\t\tModifiedDate as date\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tdeletable:false,\n\tinsertable:false,\n\tupdateable:false,\n\tupsertable:true,\n\tkeys:['ADDRESS_LINE1','ADDRESS_LINE2'],\n\tformat: 'table',\n\tmapColumn(\n\t\tADDRESS_LINE1,\n\t\tADDRESS_LINE2,\n\t\tCITY,\n\t\tSTATE,\n\t\tCOUNTRY,\n\t\tZIPCODE,\n\t\tADDRESS_TYPE,\n\t\tModifiedDate\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> sink1"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DimCustAdd')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "CustomerTable",
+								"type": "DatasetReference"
+							},
+							"name": "source1"
+						},
+						{
+							"dataset": {
+								"referenceName": "DimCustAddress",
+								"type": "DatasetReference"
+							},
+							"name": "DimCust"
+						},
+						{
+							"dataset": {
+								"referenceName": "DimAddress",
+								"type": "DatasetReference"
+							},
+							"name": "DimAdd"
+						},
+						{
+							"dataset": {
+								"referenceName": "DimCus",
+								"type": "DatasetReference"
+							},
+							"name": "DimCus"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "DimCustAddress",
+								"type": "DatasetReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "Exists1"
+						},
+						{
+							"name": "Lookup1"
+						},
+						{
+							"name": "ModifiedDate"
+						},
+						{
+							"name": "Select1"
+						},
+						{
+							"name": "AlterRow1"
+						},
+						{
+							"name": "Lookup2"
+						},
+						{
+							"name": "Select2"
+						},
+						{
+							"name": "Lookup3"
+						},
+						{
+							"name": "Select3"
+						}
+					],
+					"script": "source(output(\n\t\tCUSTOMER_ID as integer,\n\t\tFULL_NAME as string,\n\t\tEMAIL as string,\n\t\tPHONE as string,\n\t\tADDRESS_LINE1 as string,\n\t\tADDRESS_LINE2 as string,\n\t\tCITY as string,\n\t\tSTATE as string,\n\t\tCOUNTRY as string,\n\t\tZIPCODE as string,\n\t\tADDRESS_TYPE as string\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tformat: 'table') ~> source1\nsource(output(\n\t\tADDRESS_TYPE as string,\n\t\tCUSTOMER_WK as integer,\n\t\tADDRESS_WK as integer,\n\t\tModifiedDate as date\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tformat: 'table') ~> DimCust\nsource(output(\n\t\tADDRESS_WK as integer,\n\t\tADDRESS_LINE1 as string,\n\t\tADDRESS_LINE2 as string,\n\t\tCITY as string,\n\t\tSTATE as string,\n\t\tCOUNTRY as string,\n\t\tZIPCODE as string,\n\t\tADDRESS_TYPE as string,\n\t\tModifiedDate as date\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tformat: 'table') ~> DimAdd\nsource(output(\n\t\tCUSTOMER_WK as integer,\n\t\tCUSTOMER_ID as integer,\n\t\tFULL_NAME as string,\n\t\tEMAIL as string,\n\t\tPHONE as string,\n\t\tModifiedDate as date\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tformat: 'table') ~> DimCus\nSelect3, DimCust exists(Select3@CUSTOMER_WK == DimCust@CUSTOMER_WK,\n\tnegate:true,\n\tbroadcast: 'auto')~> Exists1\nExists1, DimCust lookup(Select3@CUSTOMER_WK == DimCust@CUSTOMER_WK\n\t&& Select3@ADDRESS_WK == DimCust@ADDRESS_WK,\n\tmultiple: false,\n\tpickup: 'any',\n\tbroadcast: 'auto')~> Lookup1\nLookup1 derive(ModifiedDate = currentTimestamp()) ~> ModifiedDate\nModifiedDate select(mapColumn(\n\t\tCUSTOMER_WK = Select3@CUSTOMER_WK,\n\t\tADDRESS_TYPE = Select3@ADDRESS_TYPE,\n\t\tADDRESS_WK = Select3@ADDRESS_WK,\n\t\tModifiedDate\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> Select1\nSelect1 alterRow(upsertIf(true())) ~> AlterRow1\nsource1, DimCus lookup(source1@CUSTOMER_ID == DimCus@CUSTOMER_ID,\n\tmultiple: false,\n\tpickup: 'any',\n\tbroadcast: 'auto')~> Lookup2\nLookup2 select(mapColumn(\n\t\tCUSTOMER_WK,\n\t\tADDRESS_LINE1,\n\t\tADDRESS_LINE2,\n\t\tCITY,\n\t\tSTATE,\n\t\tCOUNTRY,\n\t\tZIPCODE,\n\t\tADDRESS_TYPE,\n\t\tModifiedDate\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> Select2\nSelect2, DimAdd lookup(Select2@ADDRESS_LINE1 == DimAdd@ADDRESS_LINE1\n\t&& Select2@ADDRESS_LINE2 == DimAdd@ADDRESS_LINE2,\n\tmultiple: false,\n\tpickup: 'any',\n\tbroadcast: 'auto')~> Lookup3\nLookup3 select(mapColumn(\n\t\tCUSTOMER_WK,\n\t\tADDRESS_TYPE = Select2@ADDRESS_TYPE,\n\t\tADDRESS_WK\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> Select3\nAlterRow1 sink(input(\n\t\tADDRESS_TYPE as string,\n\t\tCUSTOMER_WK as integer,\n\t\tADDRESS_WK as integer,\n\t\tModifiedDate as date\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tdeletable:false,\n\tinsertable:false,\n\tupdateable:false,\n\tupsertable:true,\n\tkeys:['CUSTOMER_WK','ADDRESS_WK'],\n\tformat: 'table',\n\tmapColumn(\n\t\tADDRESS_TYPE,\n\t\tCUSTOMER_WK,\n\t\tADDRESS_WK,\n\t\tModifiedDate\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> sink1"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DimCustomer')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "CustomerTable",
+								"type": "DatasetReference"
+							},
+							"name": "LandingTable"
+						},
+						{
+							"dataset": {
+								"referenceName": "DimCus",
+								"type": "DatasetReference"
+							},
+							"name": "DimCustomer"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "DimCus",
+								"type": "DatasetReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "DistinctRow"
+						},
+						{
+							"name": "AlterRow1"
+						},
+						{
+							"name": "Lookup1"
+						},
+						{
+							"name": "ModifyDate"
+						},
+						{
+							"name": "exist"
+						},
+						{
+							"name": "Select1"
+						}
+					],
+					"script": "source(output(\n\t\tCUSTOMER_ID as integer,\n\t\tFULL_NAME as string,\n\t\tEMAIL as string,\n\t\tPHONE as string,\n\t\tADDRESS_LINE1 as string,\n\t\tADDRESS_LINE2 as string,\n\t\tCITY as string,\n\t\tSTATE as string,\n\t\tCOUNTRY as string,\n\t\tZIPCODE as string,\n\t\tADDRESS_TYPE as string\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tformat: 'table') ~> LandingTable\nsource(output(\n\t\tCUSTOMER_WK as integer,\n\t\tCUSTOMER_ID as integer,\n\t\tFULL_NAME as string,\n\t\tEMAIL as string,\n\t\tPHONE as string,\n\t\tModifiedDate as date\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tformat: 'table') ~> DimCustomer\nSelect1 aggregate(groupBy(CUSTOMER_ID),\n\teach(match(name!='CUSTOMER_ID'), $$ = first($$))) ~> DistinctRow\nDistinctRow alterRow(upsertIf(true())) ~> AlterRow1\nexist, DimCustomer lookup(LandingTable@FULL_NAME == DimCustomer@FULL_NAME\n\t&& LandingTable@CUSTOMER_ID == DimCustomer@CUSTOMER_ID,\n\tmultiple: false,\n\tpickup: 'any',\n\tbroadcast: 'auto')~> Lookup1\nLookup1 derive(ModifiedDate = currentTimestamp()) ~> ModifyDate\nLandingTable, DimCustomer exists(LandingTable@CUSTOMER_ID == DimCustomer@CUSTOMER_ID\n\t&& LandingTable@FULL_NAME == DimCustomer@FULL_NAME,\n\tnegate:true,\n\tbroadcast: 'auto')~> exist\nModifyDate select(mapColumn(\n\t\tCUSTOMER_ID = LandingTable@CUSTOMER_ID,\n\t\tFULL_NAME = LandingTable@FULL_NAME,\n\t\tEMAIL = LandingTable@EMAIL,\n\t\tPHONE = LandingTable@PHONE,\n\t\tModifiedDate\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> Select1\nAlterRow1 sink(input(\n\t\tCUSTOMER_WK as integer,\n\t\tCUSTOMER_ID as integer,\n\t\tFULL_NAME as string,\n\t\tEMAIL as string,\n\t\tPHONE as string,\n\t\tModifiedDate as date\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tdeletable:false,\n\tinsertable:false,\n\tupdateable:false,\n\tupsertable:true,\n\tkeys:['CUSTOMER_ID'],\n\tformat: 'table',\n\tmapColumn(\n\t\tCUSTOMER_ID,\n\t\tFULL_NAME,\n\t\tEMAIL,\n\t\tPHONE,\n\t\tModifiedDate\n\t),\n\tpartitionBy('hash', 1),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> sink1"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DimOrder')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "OrderTable",
+								"type": "DatasetReference"
+							},
+							"name": "LandingTable"
+						},
+						{
+							"dataset": {
+								"referenceName": "DimOrder",
+								"type": "DatasetReference"
+							},
+							"name": "DimOrder"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "DimOrder",
+								"type": "DatasetReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "Exists1"
+						},
+						{
+							"name": "Lookup1"
+						},
+						{
+							"name": "ModifyDate"
+						},
+						{
+							"name": "Select1"
+						},
+						{
+							"name": "Distinct"
+						},
+						{
+							"name": "AlterRow1"
+						}
+					],
+					"script": "source(output(\n\t\tCUSTOMER_ID as integer,\n\t\tCUSTOMER_ADDRESS as string,\n\t\tPRODUCT_ID as string,\n\t\tPNAME as string,\n\t\tCATEGORY as string,\n\t\tSUB_CATEGORY as string,\n\t\tPRODUCT_DESCRIPTION as string,\n\t\tUNIT_SELL_PRICE as decimal(10,2),\n\t\tCURRENCY as string,\n\t\tQUANTITY_ORDERED as integer,\n\t\tWAREHOUSE as string,\n\t\tORDER_DATE as timestamp\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tformat: 'table') ~> LandingTable\nsource(output(\n\t\tORDER_WK as integer,\n\t\tORDER_DATE as timestamp,\n\t\tModifiedDate as date\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tformat: 'table') ~> DimOrder\nLandingTable, DimOrder exists(LandingTable@ORDER_DATE == DimOrder@ORDER_DATE,\n\tnegate:true,\n\tbroadcast: 'auto')~> Exists1\nExists1, DimOrder lookup(LandingTable@ORDER_DATE == DimOrder@ORDER_DATE,\n\tmultiple: false,\n\tpickup: 'any',\n\tbroadcast: 'auto')~> Lookup1\nLookup1 derive(ModifiedDate = currentTimestamp()) ~> ModifyDate\nModifyDate select(mapColumn(\n\t\tORDER_DATE = LandingTable@ORDER_DATE,\n\t\tModifiedDate\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> Select1\nSelect1 aggregate(groupBy(ORDER_DATE),\n\teach(match(name!='ORDER_DATE'), $$ = first($$))) ~> Distinct\nDistinct alterRow(upsertIf(true())) ~> AlterRow1\nAlterRow1 sink(input(\n\t\tORDER_WK as integer,\n\t\tORDER_DATE as timestamp,\n\t\tModifiedDate as date\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tdeletable:false,\n\tinsertable:false,\n\tupdateable:false,\n\tupsertable:true,\n\tkeys:['ORDER_DATE'],\n\tformat: 'table',\n\tmapColumn(\n\t\tORDER_DATE,\n\t\tModifiedDate\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> sink1"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DimProduct')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "OrderTable",
+								"type": "DatasetReference"
+							},
+							"name": "LandingTable"
+						},
+						{
+							"dataset": {
+								"referenceName": "DimProduct",
+								"type": "DatasetReference"
+							},
+							"name": "DimProduct"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "DimProduct",
+								"type": "DatasetReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "Exists1"
+						},
+						{
+							"name": "Lookup1"
+						},
+						{
+							"name": "Modifydate"
+						},
+						{
+							"name": "Select1"
+						},
+						{
+							"name": "Distinct"
+						},
+						{
+							"name": "AlterRow1"
+						}
+					],
+					"script": "source(output(\n\t\tCUSTOMER_ID as integer,\n\t\tCUSTOMER_ADDRESS as string,\n\t\tPRODUCT_ID as string,\n\t\tPNAME as string,\n\t\tCATEGORY as string,\n\t\tSUB_CATEGORY as string,\n\t\tPRODUCT_DESCRIPTION as string,\n\t\tUNIT_SELL_PRICE as decimal(10,2),\n\t\tCURRENCY as string,\n\t\tQUANTITY_ORDERED as integer,\n\t\tWAREHOUSE as string,\n\t\tORDER_DATE as timestamp\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tformat: 'table') ~> LandingTable\nsource(output(\n\t\tPRODUCT_WK as integer,\n\t\tPRODUCT_ID as string,\n\t\tNAME as string,\n\t\tPRODUCT_DES as string,\n\t\tUNIT_PRICE as decimal(10,2),\n\t\tModifiedDate as date\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tformat: 'table') ~> DimProduct\nLandingTable, DimProduct exists(LandingTable@PRODUCT_ID == DimProduct@PRODUCT_ID,\n\tnegate:true,\n\tbroadcast: 'auto')~> Exists1\nExists1, DimProduct lookup(LandingTable@PRODUCT_ID == DimProduct@PRODUCT_ID,\n\tmultiple: false,\n\tpickup: 'any',\n\tbroadcast: 'auto')~> Lookup1\nLookup1 derive(ModifiedDate = currentTimestamp()) ~> Modifydate\nModifydate select(mapColumn(\n\t\tPRODUCT_ID = LandingTable@PRODUCT_ID,\n\t\tNAME = PNAME,\n\t\tPRODUCT_DES = PRODUCT_DESCRIPTION,\n\t\tUNIT_PRICE = UNIT_SELL_PRICE,\n\t\tModifiedDate\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> Select1\nSelect1 aggregate(groupBy(PRODUCT_ID),\n\teach(match(name!='PRODUCT_ID'), $$ = first($$))) ~> Distinct\nDistinct alterRow(upsertIf(true())) ~> AlterRow1\nAlterRow1 sink(input(\n\t\tPRODUCT_WK as integer,\n\t\tPRODUCT_ID as string,\n\t\tNAME as string,\n\t\tPRODUCT_DES as string,\n\t\tUNIT_PRICE as decimal(10,2),\n\t\tModifiedDate as date\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tdeletable:false,\n\tinsertable:false,\n\tupdateable:false,\n\tupsertable:true,\n\tkeys:['PRODUCT_ID','NAME'],\n\tformat: 'table',\n\tmapColumn(\n\t\tPRODUCT_ID,\n\t\tNAME,\n\t\tPRODUCT_DES,\n\t\tUNIT_PRICE,\n\t\tModifiedDate\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> sink1"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DimWarehouse')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "WarehouseTable",
+								"type": "DatasetReference"
+							},
+							"name": "LandingTable"
+						},
+						{
+							"dataset": {
+								"referenceName": "DimWarehouse",
+								"type": "DatasetReference"
+							},
+							"name": "DimWarehouse"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "DimWarehouse",
+								"type": "DatasetReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "Distinct"
+						},
+						{
+							"name": "Exists1"
+						},
+						{
+							"name": "Lookup1"
+						},
+						{
+							"name": "ModifyDate"
+						},
+						{
+							"name": "Select2"
+						},
+						{
+							"name": "AlterRow1"
+						}
+					],
+					"script": "source(output(\n\t\tWAREHOUSE_ID as string,\n\t\tNAME as string,\n\t\tLOCATION as string,\n\t\tPRODUCT_NAME as string,\n\t\tTOTAL_STOCK as integer,\n\t\tREORDER_POINT as integer\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tformat: 'table') ~> LandingTable\nsource(output(\n\t\tWAREHOUSE_WK as integer,\n\t\tWAREHOUSE_ID as string,\n\t\tNAME as string,\n\t\tLOCATION as string,\n\t\tModifiedDate as date\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tformat: 'table') ~> DimWarehouse\nSelect2 aggregate(groupBy(WAREHOUSE_ID),\n\teach(match(name!='WAREHOUSE_ID'), $$ = first($$)),\n\tpartitionBy('hash', 1)) ~> Distinct\nLandingTable, DimWarehouse exists(LandingTable@WAREHOUSE_ID == DimWarehouse@WAREHOUSE_ID,\n\tnegate:true,\n\tbroadcast: 'auto')~> Exists1\nExists1, DimWarehouse lookup(LandingTable@WAREHOUSE_ID == DimWarehouse@WAREHOUSE_ID,\n\tmultiple: false,\n\tpickup: 'any',\n\tbroadcast: 'auto')~> Lookup1\nLookup1 derive(ModifiedDate = currentTimestamp()) ~> ModifyDate\nModifyDate select(mapColumn(\n\t\tWAREHOUSE_ID = LandingTable@WAREHOUSE_ID,\n\t\tNAME = LandingTable@NAME,\n\t\tLOCATION = LandingTable@LOCATION,\n\t\tPRODUCT_NAME,\n\t\tModifiedDate\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> Select2\nDistinct alterRow(upsertIf(true())) ~> AlterRow1\nAlterRow1 sink(input(\n\t\tWAREHOUSE_WK as integer,\n\t\tWAREHOUSE_ID as string,\n\t\tNAME as string,\n\t\tLOCATION as string,\n\t\tModifiedDate as date\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tdeletable:false,\n\tinsertable:false,\n\tupdateable:false,\n\tupsertable:true,\n\tkeys:['WAREHOUSE_ID','NAME'],\n\tformat: 'table',\n\tmapColumn(\n\t\tWAREHOUSE_ID,\n\t\tNAME,\n\t\tLOCATION,\n\t\tModifiedDate\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> sink1"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/WarehouseTable')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/FactOrder')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DimCus",
+								"type": "DatasetReference"
+							},
+							"name": "DimCus"
+						},
+						{
+							"dataset": {
+								"referenceName": "DimProduct",
+								"type": "DatasetReference"
+							},
+							"name": "DimProduct"
+						},
+						{
+							"dataset": {
+								"referenceName": "DimDate",
+								"type": "DatasetReference"
+							},
+							"name": "DimDate"
+						},
+						{
+							"dataset": {
+								"referenceName": "OrderTable",
+								"type": "DatasetReference"
+							},
+							"name": "source1"
+						},
+						{
+							"dataset": {
+								"referenceName": "Order_Fact",
+								"type": "DatasetReference"
+							},
+							"name": "OrderFact"
+						},
+						{
+							"dataset": {
+								"referenceName": "DimOrder",
+								"type": "DatasetReference"
+							},
+							"name": "DimOrder"
+						},
+						{
+							"dataset": {
+								"referenceName": "DimWarehouse",
+								"type": "DatasetReference"
+							},
+							"name": "DimWarehouse"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "Order_Fact",
+								"type": "DatasetReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "Lookup1"
+						},
+						{
+							"name": "Select1"
+						},
+						{
+							"name": "Lookup2"
+						},
+						{
+							"name": "Select2"
+						},
+						{
+							"name": "Lookup3"
+						},
+						{
+							"name": "Select3"
+						},
+						{
+							"name": "Exists1"
+						},
+						{
+							"name": "Lookup4"
+						},
+						{
+							"name": "Modifydata"
+						},
+						{
+							"name": "Select4"
+						},
+						{
+							"name": "Lookup5"
+						},
+						{
+							"name": "Select5"
+						},
+						{
+							"name": "AlterRow1"
+						},
+						{
+							"name": "Lookup6"
+						},
+						{
+							"name": "Select6"
+						},
+						{
+							"name": "Exists2"
+						}
+					],
+					"script": "source(output(\n\t\tCUSTOMER_WK as integer,\n\t\tCUSTOMER_ID as integer,\n\t\tFULL_NAME as string,\n\t\tEMAIL as string,\n\t\tPHONE as string,\n\t\tModifiedDate as date\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tformat: 'table') ~> DimCus\nsource(output(\n\t\tPRODUCT_WK as integer,\n\t\tPRODUCT_ID as string,\n\t\tNAME as string,\n\t\tPRODUCT_DES as string,\n\t\tUNIT_PRICE as decimal(10,2),\n\t\tModifiedDate as date\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tformat: 'table') ~> DimProduct\nsource(output(\n\t\tDay_WK as integer,\n\t\tMonth_WK as integer,\n\t\tFullDate as timestamp,\n\t\tYear_Code as integer,\n\t\tMonth_Code as integer,\n\t\tMonth_Name as string,\n\t\tWeekDay_Code as integer,\n\t\tDay_Name as string,\n\t\tIs_WeekDay as boolean,\n\t\tNumberOfWorkDays as integer\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tformat: 'table') ~> DimDate\nsource(output(\n\t\tCUSTOMER_ID as integer,\n\t\tCUSTOMER_ADDRESS as string,\n\t\tPRODUCT_ID as string,\n\t\tPNAME as string,\n\t\tCATEGORY as string,\n\t\tSUB_CATEGORY as string,\n\t\tPRODUCT_DESCRIPTION as string,\n\t\tUNIT_SELL_PRICE as decimal(10,2),\n\t\tCURRENCY as string,\n\t\tQUANTITY_ORDERED as integer,\n\t\tWAREHOUSE as string,\n\t\tORDER_DATE as timestamp\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tformat: 'table') ~> source1\nsource(output(\n\t\tOrderDate as integer,\n\t\tCUSTOMER_WK as integer,\n\t\tORDER_WK as integer,\n\t\tPRODUCT_WK as integer,\n\t\tQUANTITY_ORDERED as integer,\n\t\tAMOUNT as decimal(10,2),\n\t\tWAREHOUSE_WK as integer,\n\t\tModifiedDate as date\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tformat: 'table') ~> OrderFact\nsource(output(\n\t\tORDER_WK as integer,\n\t\tORDER_DATE as timestamp,\n\t\tModifiedDate as date\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tformat: 'table') ~> DimOrder\nsource(output(\n\t\tWAREHOUSE_WK as integer,\n\t\tWAREHOUSE_ID as string,\n\t\tNAME as string,\n\t\tLOCATION as string,\n\t\tModifiedDate as date\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tformat: 'table') ~> DimWarehouse\nExists2, DimCus lookup(source1@CUSTOMER_ID == DimCus@CUSTOMER_ID,\n\tmultiple: false,\n\tpickup: 'any',\n\tbroadcast: 'auto')~> Lookup1\nLookup1 select(mapColumn(\n\t\tCUSTOMER_WK,\n\t\tCUSTOMER_ADDRESS,\n\t\tPRODUCT_ID,\n\t\tPNAME,\n\t\tQUANTITY_ORDERED,\n\t\tORDER_DATE,\n\t\tWAREHOUSE\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> Select1\nSelect1, DimProduct lookup(Select1@PRODUCT_ID == DimProduct@PRODUCT_ID,\n\tmultiple: false,\n\tpickup: 'any',\n\tbroadcast: 'auto')~> Lookup2\nLookup2 select(mapColumn(\n\t\tCUSTOMER_WK,\n\t\tPRODUCT_WK,\n\t\tQUANTITY_ORDERED,\n\t\tORDER_DATE,\n\t\tUNIT_PRICE,\n\t\tWAREHOUSE\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> Select2\nSelect5, DimDate lookup(ORDER_DATE == FullDate,\n\tmultiple: false,\n\tpickup: 'any',\n\tbroadcast: 'auto')~> Lookup3\nLookup3 select(mapColumn(\n\t\tCUSTOMER_WK,\n\t\tPRODUCT_WK,\n\t\tQUANTITY_ORDERED,\n\t\tORDER_DATE,\n\t\tUNIT_PRICE,\n\t\tORDER_WK,\n\t\tWAREHOUSE,\n\t\tDay_WK\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> Select3\nSelect6, OrderFact exists(Day_WK == OrderDate\n\t&& Select6@CUSTOMER_WK == OrderFact@CUSTOMER_WK\n\t&& Select6@PRODUCT_WK == OrderFact@PRODUCT_WK,\n\tnegate:true,\n\tbroadcast: 'auto')~> Exists1\nExists1, OrderFact lookup(Day_WK == OrderDate\n\t&& Select6@CUSTOMER_WK == OrderFact@CUSTOMER_WK\n\t&& Select6@PRODUCT_WK == OrderFact@PRODUCT_WK,\n\tmultiple: false,\n\tpickup: 'any',\n\tbroadcast: 'auto')~> Lookup4\nLookup4 derive(ModifiedDate = currentTimestamp(),\n\t\tAMOUNT = UNIT_PRICE*Select6@QUANTITY_ORDERED) ~> Modifydata\nModifydata select(mapColumn(\n\t\tCUSTOMER_WK = Select6@CUSTOMER_WK,\n\t\tPRODUCT_WK = Select6@PRODUCT_WK,\n\t\tQUANTITY_ORDERED = Select6@QUANTITY_ORDERED,\n\t\tORDER_WK = Select6@ORDER_WK,\n\t\tOrderDate = Day_WK,\n\t\tWAREHOUSE_WK = Select6@WAREHOUSE_WK,\n\t\tModifiedDate,\n\t\tAMOUNT\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> Select4\nSelect2, DimOrder lookup(Select2@ORDER_DATE == DimOrder@ORDER_DATE,\n\tmultiple: false,\n\tpickup: 'any',\n\tbroadcast: 'auto')~> Lookup5\nLookup5 select(mapColumn(\n\t\tCUSTOMER_WK,\n\t\tPRODUCT_WK,\n\t\tQUANTITY_ORDERED,\n\t\tORDER_DATE = Select2@ORDER_DATE,\n\t\tUNIT_PRICE,\n\t\tORDER_WK,\n\t\tWAREHOUSE\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> Select5\nSelect4 alterRow(upsertIf(true())) ~> AlterRow1\nSelect3, DimWarehouse lookup(WAREHOUSE == NAME,\n\tmultiple: false,\n\tpickup: 'any',\n\tbroadcast: 'auto')~> Lookup6\nLookup6 select(mapColumn(\n\t\tCUSTOMER_WK,\n\t\tPRODUCT_WK,\n\t\tQUANTITY_ORDERED,\n\t\tORDER_DATE,\n\t\tUNIT_PRICE,\n\t\tORDER_WK,\n\t\tWAREHOUSE,\n\t\tDay_WK,\n\t\tWAREHOUSE_WK\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> Select6\nsource1, DimCus exists(source1@CUSTOMER_ID == DimCus@CUSTOMER_ID,\n\tnegate:false,\n\tbroadcast: 'auto')~> Exists2\nAlterRow1 sink(input(\n\t\tOrderDate as integer,\n\t\tCUSTOMER_WK as integer,\n\t\tORDER_WK as integer,\n\t\tPRODUCT_WK as integer,\n\t\tQUANTITY_ORDERED as integer,\n\t\tAMOUNT as decimal(10,2),\n\t\tWAREHOUSE_WK as integer,\n\t\tModifiedDate as date\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tdeletable:false,\n\tinsertable:false,\n\tupdateable:false,\n\tupsertable:true,\n\tkeys:['CUSTOMER_WK','PRODUCT_WK','ORDER_WK'],\n\tformat: 'table',\n\tmapColumn(\n\t\tOrderDate,\n\t\tCUSTOMER_WK,\n\t\tORDER_WK,\n\t\tPRODUCT_WK,\n\t\tQUANTITY_ORDERED,\n\t\tAMOUNT,\n\t\tWAREHOUSE_WK,\n\t\tModifiedDate\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> sink1"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/FactStock')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "WarehouseTable",
+								"type": "DatasetReference"
+							},
+							"name": "source1"
+						},
+						{
+							"dataset": {
+								"referenceName": "DimProduct",
+								"type": "DatasetReference"
+							},
+							"name": "DimProduct"
+						},
+						{
+							"dataset": {
+								"referenceName": "DimWarehouse",
+								"type": "DatasetReference"
+							},
+							"name": "DimWarehouse"
+						},
+						{
+							"dataset": {
+								"referenceName": "Stock_Fact",
+								"type": "DatasetReference"
+							},
+							"name": "StockFact"
+						},
+						{
+							"dataset": {
+								"referenceName": "Order_Fact",
+								"type": "DatasetReference"
+							},
+							"name": "OrderFact"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "Stock_Fact",
+								"type": "DatasetReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "Lookup1"
+						},
+						{
+							"name": "Select1"
+						},
+						{
+							"name": "Lookup2"
+						},
+						{
+							"name": "WarehouseStockInfo"
+						},
+						{
+							"name": "Lookup3"
+						},
+						{
+							"name": "Select3"
+						},
+						{
+							"name": "ModifiedData"
+						},
+						{
+							"name": "Exists1"
+						},
+						{
+							"name": "Lookup4"
+						},
+						{
+							"name": "Select4"
+						},
+						{
+							"name": "Flag"
+						},
+						{
+							"name": "AlterRow1"
+						}
+					],
+					"script": "source(output(\n\t\tWAREHOUSE_ID as string,\n\t\tNAME as string,\n\t\tLOCATION as string,\n\t\tPRODUCT_NAME as string,\n\t\tTOTAL_STOCK as integer,\n\t\tREORDER_POINT as integer\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tformat: 'table') ~> source1\nsource(output(\n\t\tPRODUCT_WK as integer,\n\t\tPRODUCT_ID as string,\n\t\tNAME as string,\n\t\tPRODUCT_DES as string,\n\t\tUNIT_PRICE as decimal(10,2),\n\t\tModifiedDate as date\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tformat: 'table') ~> DimProduct\nsource(output(\n\t\tWAREHOUSE_WK as integer,\n\t\tWAREHOUSE_ID as string,\n\t\tNAME as string,\n\t\tLOCATION as string,\n\t\tModifiedDate as date\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tformat: 'table') ~> DimWarehouse\nsource(output(\n\t\tPRODUCT_WK as integer,\n\t\tWAREHOUSE_WK as integer,\n\t\tTOTAL_STOCK as integer,\n\t\tREORDER_STOCK as integer,\n\t\tCURRENT_STOCK as integer,\n\t\tOrderDate as integer,\n\t\tFlag as integer,\n\t\tModifiedDate as date\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tformat: 'table') ~> StockFact\nsource(output(\n\t\tOrderDate as integer,\n\t\tCUSTOMER_WK as integer,\n\t\tORDER_WK as integer,\n\t\tPRODUCT_WK as integer,\n\t\tQUANTITY_ORDERED as integer,\n\t\tAMOUNT as decimal(10,2),\n\t\tWAREHOUSE_WK as integer,\n\t\tModifiedDate as date\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tformat: 'table') ~> OrderFact\nsource1, DimProduct lookup(PRODUCT_NAME == DimProduct@NAME,\n\tmultiple: false,\n\tpickup: 'any',\n\tbroadcast: 'auto')~> Lookup1\nLookup1 select(mapColumn(\n\t\tWAREHOUSE_ID,\n\t\tPRODUCT_WK,\n\t\tTOTAL_STOCK,\n\t\tREORDER_POINT\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> Select1\nSelect1, DimWarehouse lookup(Select1@WAREHOUSE_ID == DimWarehouse@WAREHOUSE_ID,\n\tmultiple: false,\n\tpickup: 'any',\n\tbroadcast: 'auto')~> Lookup2\nLookup2 select(mapColumn(\n\t\tPRODUCT_WK,\n\t\tTOTAL_STOCK,\n\t\tREORDER_POINT,\n\t\tWAREHOUSE_WK,\n\t\tModifiedDate\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> WarehouseStockInfo\nOrderFact, WarehouseStockInfo lookup(OrderFact@WAREHOUSE_WK == WarehouseStockInfo@WAREHOUSE_WK\n\t&& OrderFact@PRODUCT_WK == WarehouseStockInfo@PRODUCT_WK,\n\tmultiple: false,\n\tpickup: 'any',\n\tbroadcast: 'auto')~> Lookup3\nLookup3 select(mapColumn(\n\t\tOrderDate,\n\t\tPRODUCT_WK = OrderFact@PRODUCT_WK,\n\t\tQUANTITY_ORDERED,\n\t\tWAREHOUSE_WK = OrderFact@WAREHOUSE_WK,\n\t\tModifiedDate = OrderFact@ModifiedDate,\n\t\tTOTAL_STOCK,\n\t\tREORDER_POINT\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> Select3\nSelect4 derive(ModifiedDate = currentTimestamp(),\n\t\tCURRENT_STOCK = TOTAL_STOCK-QUANTITY_ORDERED) ~> ModifiedData\nSelect3, StockFact exists(Select3@PRODUCT_WK == StockFact@PRODUCT_WK\n\t&& Select3@WAREHOUSE_WK == StockFact@WAREHOUSE_WK\n\t&& Select3@OrderDate == StockFact@OrderDate,\n\tnegate:true,\n\tbroadcast: 'auto')~> Exists1\nExists1, StockFact lookup(Select3@PRODUCT_WK == StockFact@PRODUCT_WK\n\t&& Select3@OrderDate == StockFact@OrderDate\n\t&& Select3@WAREHOUSE_WK == StockFact@WAREHOUSE_WK,\n\tmultiple: false,\n\tpickup: 'any',\n\tbroadcast: 'auto')~> Lookup4\nLookup4 select(mapColumn(\n\t\tOrderDate = Select3@OrderDate,\n\t\tPRODUCT_WK = Select3@PRODUCT_WK,\n\t\tQUANTITY_ORDERED,\n\t\tWAREHOUSE_WK = Select3@WAREHOUSE_WK,\n\t\tModifiedDate = Select3@ModifiedDate,\n\t\tTOTAL_STOCK = Select3@TOTAL_STOCK,\n\t\tREORDER_STOCK = REORDER_POINT\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> Select4\nModifiedData derive(Flag = iif(lesserOrEqual(CURRENT_STOCK,REORDER_STOCK),1,0)) ~> Flag\nFlag alterRow(upsertIf(true())) ~> AlterRow1\nAlterRow1 sink(input(\n\t\tPRODUCT_WK as integer,\n\t\tWAREHOUSE_WK as integer,\n\t\tTOTAL_STOCK as integer,\n\t\tREORDER_STOCK as integer,\n\t\tCURRENT_STOCK as integer,\n\t\tOrderDate as integer,\n\t\tFlag as integer,\n\t\tModifiedDate as date\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tdeletable:false,\n\tinsertable:false,\n\tupdateable:false,\n\tupsertable:true,\n\tkeys:['PRODUCT_WK','WAREHOUSE_WK','OrderDate'],\n\tformat: 'table',\n\tmapColumn(\n\t\tPRODUCT_WK,\n\t\tWAREHOUSE_WK,\n\t\tTOTAL_STOCK,\n\t\tREORDER_STOCK,\n\t\tCURRENT_STOCK,\n\t\tOrderDate,\n\t\tFlag,\n\t\tModifiedDate\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> sink1"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/WarehouseTable')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/OrderIn')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "ORDER_DETAILS",
+								"type": "DatasetReference"
+							},
+							"name": "source1"
+						},
+						{
+							"dataset": {
+								"referenceName": "OrderTable",
+								"type": "DatasetReference"
+							},
+							"name": "OrderTable"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "OrderTable",
+								"type": "DatasetReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "DerivedColumn1"
+						},
+						{
+							"name": "Exists1"
+						},
+						{
+							"name": "AlterRow1"
+						}
+					],
+					"script": "source(output(\n\t\t{CUSTOMER ID} as short,\n\t\t{CUSTOMER ADDRESS} as string,\n\t\t{PRODUCT ID} as string,\n\t\tNAME as string,\n\t\tCATEGORY as string,\n\t\t{SUB CATEGORY} as string,\n\t\t{PRODUCT DESCRIPTION} as string,\n\t\t{UNIT SELL PRICE} as double,\n\t\tCURRENCY as string,\n\t\t{QUANTITY ORDERED} as short,\n\t\t{ORDER DATE} as date 'MM/dd/yyyy',\n\t\tWAREHOUSE as string\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false) ~> source1\nsource(output(\n\t\tCUSTOMER_ID as integer,\n\t\tCUSTOMER_ADDRESS as string,\n\t\tPRODUCT_ID as string,\n\t\tPNAME as string,\n\t\tCATEGORY as string,\n\t\tSUB_CATEGORY as string,\n\t\tPRODUCT_DESCRIPTION as string,\n\t\tUNIT_SELL_PRICE as decimal(10,2),\n\t\tCURRENCY as string,\n\t\tQUANTITY_ORDERED as integer,\n\t\tWAREHOUSE as string,\n\t\tORDER_DATE as timestamp\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tformat: 'table') ~> OrderTable\nsource1 derive(WAREHOUSE = replace(replace(replace(replace(replace(replace(WAREHOUSE,'$',''),'#',''),'COMPUTER & CO','Computer & Co'),'TECHNO FIRST','Techno First'),'ENTERPRISE SOLUTIONS','Enterprise Solutions'),' ',''),\n\t\tNAME = replace(NAME,' ','')) ~> DerivedColumn1\nDerivedColumn1, OrderTable exists({CUSTOMER ID} == CUSTOMER_ID\n\t&& {PRODUCT ID} == PRODUCT_ID\n\t&& DerivedColumn1@WAREHOUSE == OrderTable@WAREHOUSE\n\t&& {QUANTITY ORDERED} == QUANTITY_ORDERED,\n\tnegate:true,\n\tbroadcast: 'auto')~> Exists1\nExists1 alterRow(insertIf(true())) ~> AlterRow1\nAlterRow1 sink(input(\n\t\tCUSTOMER_ID as integer,\n\t\tCUSTOMER_ADDRESS as string,\n\t\tPRODUCT_ID as string,\n\t\tPNAME as string,\n\t\tCATEGORY as string,\n\t\tSUB_CATEGORY as string,\n\t\tPRODUCT_DESCRIPTION as string,\n\t\tUNIT_SELL_PRICE as decimal(10,2),\n\t\tCURRENCY as string,\n\t\tQUANTITY_ORDERED as integer,\n\t\tWAREHOUSE as string,\n\t\tORDER_DATE as timestamp\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tdeletable:false,\n\tinsertable:true,\n\tupdateable:false,\n\tupsertable:false,\n\tformat: 'table',\n\tmapColumn(\n\t\tCUSTOMER_ID = {CUSTOMER ID},\n\t\tCUSTOMER_ADDRESS = {CUSTOMER ADDRESS},\n\t\tPRODUCT_ID = {PRODUCT ID},\n\t\tPNAME = NAME,\n\t\tCATEGORY,\n\t\tSUB_CATEGORY = {SUB CATEGORY},\n\t\tPRODUCT_DESCRIPTION = {PRODUCT DESCRIPTION},\n\t\tUNIT_SELL_PRICE = {UNIT SELL PRICE},\n\t\tCURRENCY,\n\t\tQUANTITY_ORDERED = {QUANTITY ORDERED},\n\t\tWAREHOUSE,\n\t\tORDER_DATE = {ORDER DATE}\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> sink1"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/OrderIn_copy1')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "ORDER_DETAILS",
+								"type": "DatasetReference"
+							},
+							"name": "source1"
+						},
+						{
+							"dataset": {
+								"referenceName": "ORDER_DETAILS",
+								"type": "DatasetReference"
+							},
+							"name": "OrderTable"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "OrderTable",
+								"type": "DatasetReference"
+							},
+							"name": "sink1"
+						},
+						{
+							"dataset": {
+								"referenceName": "OrderTable",
+								"type": "DatasetReference"
+							},
+							"name": "sink2"
+						}
+					],
+					"transformations": [
+						{
+							"name": "DerivedColumn1"
+						}
+					],
+					"script": "source(output(\n\t\t{CUSTOMER ID} as short,\n\t\t{CUSTOMER ADDRESS} as string,\n\t\t{PRODUCT ID} as string,\n\t\tNAME as string,\n\t\tCATEGORY as string,\n\t\t{SUB CATEGORY} as string,\n\t\t{PRODUCT DESCRIPTION} as string,\n\t\t{UNIT SELL PRICE} as double,\n\t\tCURRENCY as string,\n\t\t{QUANTITY ORDERED} as short,\n\t\t{ORDER DATE} as string,\n\t\tWAREHOUSE as string\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false) ~> source1\nsource(output(\n\t\t{CUSTOMER ID} as string,\n\t\t{CUSTOMER ADDRESS} as string,\n\t\t{PRODUCT ID} as string,\n\t\tNAME as string,\n\t\tCATEGORY as string,\n\t\t{SUB CATEGORY} as string,\n\t\t{PRODUCT DESCRIPTION} as string,\n\t\t{UNIT SELL PRICE} as string,\n\t\tCURRENCY as string,\n\t\t{QUANTITY ORDERED} as string,\n\t\t{ORDER DATE} as timestamp 'MM/dd/yyyy',\n\t\tWAREHOUSE as string\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tinferDriftedColumnTypes: true,\n\ttimestampFormats: ['yyyy/MM/dd']) ~> OrderTable\nsource1 derive(WAREHOUSE = replace(replace(replace(replace(replace(replace(WAREHOUSE,'$',''),'#',''),'COMPUTER & CO','Computer & Co'),'TECHNO FIRST','Techno First'),'ENTERPRISE SOLUTIONS','Enterprise Solutions'),' ',''),\n\t\tNAME = replace(NAME,' ',''),\n\t\t{ORDER DATE} = toDate({ORDER DATE},'MM/dd/yyyy')) ~> DerivedColumn1\nDerivedColumn1 sink(input(\n\t\tCUSTOMER_ID as integer,\n\t\tCUSTOMER_ADDRESS as string,\n\t\tPRODUCT_ID as string,\n\t\tPNAME as string,\n\t\tCATEGORY as string,\n\t\tSUB_CATEGORY as string,\n\t\tPRODUCT_DESCRIPTION as string,\n\t\tUNIT_SELL_PRICE as decimal(10,2),\n\t\tCURRENCY as string,\n\t\tQUANTITY_ORDERED as integer,\n\t\tWAREHOUSE as string,\n\t\tORDER_DATE as timestamp\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tdeletable:false,\n\tinsertable:true,\n\tupdateable:false,\n\tupsertable:false,\n\tformat: 'table',\n\tmapColumn(\n\t\tCATEGORY,\n\t\tCURRENCY,\n\t\tWAREHOUSE,\n\t\tORDER_DATE = {ORDER DATE}\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> sink1\nOrderTable sink(input(\n\t\tCUSTOMER_ID as integer,\n\t\tCUSTOMER_ADDRESS as string,\n\t\tPRODUCT_ID as string,\n\t\tPNAME as string,\n\t\tCATEGORY as string,\n\t\tSUB_CATEGORY as string,\n\t\tPRODUCT_DESCRIPTION as string,\n\t\tUNIT_SELL_PRICE as decimal(10,2),\n\t\tCURRENCY as string,\n\t\tQUANTITY_ORDERED as integer,\n\t\tWAREHOUSE as string,\n\t\tORDER_DATE as timestamp\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tdeletable:false,\n\tinsertable:true,\n\tupdateable:false,\n\tupsertable:false,\n\tformat: 'table',\n\tmapColumn(\n\t\tCUSTOMER_ID = {CUSTOMER ID},\n\t\tCUSTOMER_ADDRESS = {CUSTOMER ADDRESS},\n\t\tPRODUCT_ID = {PRODUCT ID},\n\t\tPNAME = NAME,\n\t\tCATEGORY,\n\t\tSUB_CATEGORY = {SUB CATEGORY},\n\t\tPRODUCT_DESCRIPTION = {PRODUCT DESCRIPTION},\n\t\tUNIT_SELL_PRICE = {UNIT SELL PRICE},\n\t\tCURRENCY,\n\t\tQUANTITY_ORDERED = {QUANTITY ORDERED},\n\t\tWAREHOUSE,\n\t\tORDER_DATE = {ORDER DATE}\n\t),\n\ttimestampFormat:'yyyy/MM/dd',\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> sink2"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ProfitReport')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "Order_Fact",
+								"type": "DatasetReference"
+							},
+							"name": "source1"
+						},
+						{
+							"dataset": {
+								"referenceName": "DimProduct",
+								"type": "DatasetReference"
+							},
+							"name": "DimProduct"
+						},
+						{
+							"dataset": {
+								"referenceName": "DimDate",
+								"type": "DatasetReference"
+							},
+							"name": "DimDate"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "ProfitReport",
+								"type": "DatasetReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "Select1"
+						},
+						{
+							"name": "Lookup1"
+						},
+						{
+							"name": "SumProfit"
+						},
+						{
+							"name": "Lookup2"
+						},
+						{
+							"name": "Select2"
+						},
+						{
+							"name": "Filter1"
+						},
+						{
+							"name": "DerivedColumn1"
+						}
+					],
+					"script": "source(output(\n\t\tOrderDate as integer,\n\t\tCUSTOMER_WK as integer,\n\t\tORDER_WK as integer,\n\t\tPRODUCT_WK as integer,\n\t\tQUANTITY_ORDERED as integer,\n\t\tAMOUNT as decimal(10,2),\n\t\tWAREHOUSE_WK as integer,\n\t\tModifiedDate as date\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tformat: 'table') ~> source1\nsource(output(\n\t\tPRODUCT_WK as integer,\n\t\tPRODUCT_ID as string,\n\t\tNAME as string,\n\t\tPRODUCT_DES as string,\n\t\tUNIT_PRICE as decimal(10,2),\n\t\tModifiedDate as date\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tformat: 'table') ~> DimProduct\nsource(output(\n\t\tDay_WK as integer,\n\t\tMonth_WK as integer,\n\t\tFullDate as timestamp,\n\t\tYear_Code as integer,\n\t\tMonth_Code as integer,\n\t\tMonth_Name as string,\n\t\tWeekDay_Code as integer,\n\t\tDay_Name as string,\n\t\tIs_WeekDay as boolean,\n\t\tNumberOfWorkDays as integer\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tformat: 'table') ~> DimDate\nLookup1 select(mapColumn(\n\t\tOrderDate,\n\t\tPRODUCT_WK = source1@PRODUCT_WK,\n\t\tPRODUCT_NAME = NAME,\n\t\tPROFIT = AMOUNT\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> Select1\nsource1, DimProduct lookup(source1@PRODUCT_WK == DimProduct@PRODUCT_WK,\n\tmultiple: false,\n\tpickup: 'any',\n\tbroadcast: 'auto')~> Lookup1\nFilter1 aggregate(groupBy(OrderDate,\n\t\tPRODUCT_WK,\n\t\tPRODUCT_NAME),\n\tPROFIT = sum(PROFIT)) ~> SumProfit\nSelect1, DimDate lookup(OrderDate == Day_WK,\n\tmultiple: false,\n\tpickup: 'any',\n\tbroadcast: 'auto')~> Lookup2\nLookup2 select(mapColumn(\n\t\tOrderDate,\n\t\tPRODUCT_WK,\n\t\tPRODUCT_NAME,\n\t\tPROFIT,\n\t\tFullDate\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> Select2\nDerivedColumn1 filter(FullDate == currentDate()) ~> Filter1\nSelect2 derive(FullDate = toDate(toString(FullDate,'yyyy-MM-dd'))) ~> DerivedColumn1\nSumProfit sink(input(\n\t\tOrderDate as integer,\n\t\tPRODUCT_WK as integer,\n\t\tPRODUCT_NAME as string,\n\t\tPROFIT as decimal(10,2)\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tdeletable:false,\n\tinsertable:true,\n\tupdateable:false,\n\tupsertable:false,\n\tformat: 'table',\n\tpreSQLs:['delete from [out].[ProfitReport]'],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> sink1"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/StockReport')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "Stock_Fact",
+								"type": "DatasetReference"
+							},
+							"name": "source1"
+						},
+						{
+							"dataset": {
+								"referenceName": "DimDate",
+								"type": "DatasetReference"
+							},
+							"name": "DimDate"
+						},
+						{
+							"dataset": {
+								"referenceName": "DimProduct",
+								"type": "DatasetReference"
+							},
+							"name": "DimProduct"
+						},
+						{
+							"dataset": {
+								"referenceName": "DimWarehouse",
+								"type": "DatasetReference"
+							},
+							"name": "DimWarehouse"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "StockReport",
+								"type": "DatasetReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "SumQuantity"
+						},
+						{
+							"name": "Lookup2"
+						},
+						{
+							"name": "Select2"
+						},
+						{
+							"name": "Filter1"
+						},
+						{
+							"name": "DerivedColumn1"
+						},
+						{
+							"name": "OriData"
+						},
+						{
+							"name": "Lookup3"
+						},
+						{
+							"name": "Select3"
+						},
+						{
+							"name": "Flag"
+						},
+						{
+							"name": "Lookup4"
+						},
+						{
+							"name": "Select4"
+						},
+						{
+							"name": "Lookup5"
+						},
+						{
+							"name": "Select5"
+						}
+					],
+					"script": "source(output(\n\t\tPRODUCT_WK as integer,\n\t\tWAREHOUSE_WK as integer,\n\t\tTOTAL_STOCK as integer,\n\t\tREORDER_STOCK as integer,\n\t\tCURRENT_STOCK as integer,\n\t\tOrderDate as integer,\n\t\tFlag as integer,\n\t\tModifiedDate as date\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tformat: 'table') ~> source1\nsource(output(\n\t\tDay_WK as integer,\n\t\tMonth_WK as integer,\n\t\tFullDate as timestamp,\n\t\tYear_Code as integer,\n\t\tMonth_Code as integer,\n\t\tMonth_Name as string,\n\t\tWeekDay_Code as integer,\n\t\tDay_Name as string,\n\t\tIs_WeekDay as boolean,\n\t\tNumberOfWorkDays as integer\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tformat: 'table') ~> DimDate\nsource(output(\n\t\tPRODUCT_WK as integer,\n\t\tPRODUCT_ID as string,\n\t\tNAME as string,\n\t\tPRODUCT_DES as string,\n\t\tUNIT_PRICE as decimal(10,2),\n\t\tModifiedDate as date\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tformat: 'table') ~> DimProduct\nsource(output(\n\t\tWAREHOUSE_WK as integer,\n\t\tWAREHOUSE_ID as string,\n\t\tNAME as string,\n\t\tLOCATION as string,\n\t\tModifiedDate as date\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tformat: 'table') ~> DimWarehouse\nFilter1 aggregate(groupBy(OrderDate,\n\t\tPRODUCT_NAME,\n\t\tWAREHOUSE_NAME),\n\tQuantityStock = sum(QuantityStock)) ~> SumQuantity\nsource1, DimDate lookup(OrderDate == Day_WK,\n\tmultiple: false,\n\tpickup: 'any',\n\tbroadcast: 'auto')~> Lookup2\nLookup2 select(mapColumn(\n\t\tPRODUCT_WK,\n\t\tWAREHOUSE_WK,\n\t\tREORDER_STOCK,\n\t\tCURRENT_STOCK,\n\t\tOrderDate,\n\t\tFlag,\n\t\tFullDate,\n\t\tTOTAL_STOCK\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> Select2\nDerivedColumn1 filter(FullDate == currentDate()) ~> Filter1\nSelect5 derive(FullDate = toDate(toString(FullDate,'yyyy-MM-dd')),\n\t\tQuantityStock = TOTAL_STOCK - CURRENT_STOCK) ~> DerivedColumn1\nFilter1 select(mapColumn(\n\t\tREORDER_STOCK,\n\t\tCURRENT_STOCK,\n\t\tOrderDate,\n\t\tFlag,\n\t\tFullDate,\n\t\tTOTAL_STOCK,\n\t\tPRODUCT_NAME,\n\t\tWAREHOUSE_NAME,\n\t\tQuantityStock\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> OriData\nSumQuantity, OriData lookup(SumQuantity@PRODUCT_NAME == OriData@PRODUCT_NAME\n\t&& SumQuantity@WAREHOUSE_NAME == OriData@WAREHOUSE_NAME\n\t&& SumQuantity@OrderDate == OriData@OrderDate,\n\tmultiple: false,\n\tpickup: 'any',\n\tbroadcast: 'auto')~> Lookup3\nLookup3 select(mapColumn(\n\t\tOrderDate = SumQuantity@OrderDate,\n\t\tPRODUCT_NAME = SumQuantity@PRODUCT_NAME,\n\t\tWAREHOUSE_NAME = SumQuantity@WAREHOUSE_NAME,\n\t\tQuantityStock = SumQuantity@QuantityStock,\n\t\tREORDER_STOCK,\n\t\tCURRENT_STOCK,\n\t\tTOTAL_STOCK\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> Select3\nSelect3 derive(Flag = iif(lesserOrEqual(CURRENT_STOCK,REORDER_STOCK),1,0),\n\t\tCURRENT_STOCK = TOTAL_STOCK - QuantityStock) ~> Flag\nSelect2, DimProduct lookup(Select2@PRODUCT_WK == DimProduct@PRODUCT_WK,\n\tmultiple: false,\n\tpickup: 'any',\n\tbroadcast: 'auto')~> Lookup4\nLookup4 select(mapColumn(\n\t\tWAREHOUSE_WK,\n\t\tREORDER_STOCK,\n\t\tCURRENT_STOCK,\n\t\tOrderDate,\n\t\tFlag,\n\t\tFullDate,\n\t\tTOTAL_STOCK,\n\t\tPRODUCT_NAME = NAME\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> Select4\nSelect4, DimWarehouse lookup(Select4@WAREHOUSE_WK == DimWarehouse@WAREHOUSE_WK,\n\tmultiple: false,\n\tpickup: 'any',\n\tbroadcast: 'auto')~> Lookup5\nLookup5 select(mapColumn(\n\t\tREORDER_STOCK,\n\t\tCURRENT_STOCK,\n\t\tOrderDate,\n\t\tFlag,\n\t\tFullDate,\n\t\tTOTAL_STOCK,\n\t\tPRODUCT_NAME,\n\t\tWAREHOUSE_NAME = NAME\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> Select5\nFlag sink(input(\n\t\tOrderDate as integer,\n\t\tPRODUCT_NAME as string,\n\t\tWAREHOUSE_NAME as string,\n\t\tREORDERD_STOCK as integer,\n\t\tCURRENT_STOCK as integer,\n\t\tFlag as integer\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tdeletable:false,\n\tinsertable:true,\n\tupdateable:false,\n\tupsertable:false,\n\tformat: 'table',\n\tpreSQLs:['delete from [out].[StockReport]'],\n\tmapColumn(\n\t\tOrderDate,\n\t\tPRODUCT_NAME,\n\t\tWAREHOUSE_NAME,\n\t\tREORDERD_STOCK = REORDER_STOCK,\n\t\tCURRENT_STOCK,\n\t\tFlag\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> sink1"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/WarehouseIn')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "WAREHOUSE",
+								"type": "DatasetReference"
+							},
+							"name": "source1"
+						},
+						{
+							"dataset": {
+								"referenceName": "WarehouseTable",
+								"type": "DatasetReference"
+							},
+							"name": "WarehouseTable"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "WarehouseTable",
+								"type": "DatasetReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "DerivedColumn1"
+						},
+						{
+							"name": "Exists1"
+						},
+						{
+							"name": "AlterRow1"
+						}
+					],
+					"script": "source(output(\n\t\tWAREHOUSE_ID as string,\n\t\tNAME as string,\n\t\tLOCATION as string,\n\t\t{PRODUCT_NAME } as string,\n\t\t{TOTAL STOCK} as string,\n\t\t{REORDER POINT} as string\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false) ~> source1\nsource(output(\n\t\tWAREHOUSE_ID as string,\n\t\tNAME as string,\n\t\tLOCATION as string,\n\t\tPRODUCT_NAME as string,\n\t\tTOTAL_STOCK as integer,\n\t\tREORDER_POINT as integer\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tformat: 'table') ~> WarehouseTable\nsource1 derive({PRODUCT_NAME } = replace(replace(replace(replace({PRODUCT_NAME },'FLASH CHARGER','Flash Charger'),'FLASH DESKTOP','Flash Desktop'),' ',''),'#',''),\n\t\tNAME = replace(replace(replace(NAME,'DIGITAL AGE','Digital Age'),'TECHNO FIRST','Techno First'),' ','')) ~> DerivedColumn1\nDerivedColumn1, WarehouseTable exists(source1@WAREHOUSE_ID == WarehouseTable@WAREHOUSE_ID\n\t&& DerivedColumn1@NAME == WarehouseTable@NAME\n\t&& {PRODUCT_NAME } == PRODUCT_NAME,\n\tnegate:true,\n\tbroadcast: 'auto')~> Exists1\nExists1 alterRow(insertIf(true())) ~> AlterRow1\nAlterRow1 sink(input(\n\t\tWAREHOUSE_ID as string,\n\t\tNAME as string,\n\t\tLOCATION as string,\n\t\tPRODUCT_NAME as string,\n\t\tTOTAL_STOCK as integer,\n\t\tREORDER_POINT as integer\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tdeletable:false,\n\tinsertable:true,\n\tupdateable:false,\n\tupsertable:false,\n\tformat: 'table',\n\tmapColumn(\n\t\tWAREHOUSE_ID,\n\t\tNAME,\n\t\tLOCATION,\n\t\tPRODUCT_NAME = {PRODUCT_NAME },\n\t\tTOTAL_STOCK = {TOTAL STOCK},\n\t\tREORDER_POINT = {REORDER POINT}\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> sink1"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/WAREHOUSE')]",
+				"[concat(variables('factoryId'), '/datasets/WarehouseTable')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DailyReport')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "ProfitReport",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "ProfitReport",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"source1": {},
+									"DimProduct": {},
+									"DimDate": {},
+									"sink1": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							}
+						}
+					},
+					{
+						"name": "StockReport",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "StockReport",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"source1": {},
+									"DimDate": {},
+									"DimProduct": {},
+									"DimWarehouse": {},
+									"sink1": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							}
+						}
+					},
+					{
+						"name": "Copy ProfitReport to archive",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "ProfitReport",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"queryTimeout": "02:00:00"
+							},
+							"sink": {
+								"type": "DelimitedTextSink",
+								"storeSettings": {
+									"type": "AzureBlobStorageWriteSettings"
+								},
+								"formatSettings": {
+									"type": "DelimitedTextWriteSettings",
+									"quoteAllText": true,
+									"fileExtension": ".txt"
+								}
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "ProfitReport",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "archive",
+								"type": "DatasetReference",
+								"parameters": {
+									"filename": {
+										"value": "@concat('ProfitReport-',utcnow(),'.csv')",
+										"type": "Expression"
+									}
+								}
+							}
+						]
+					},
+					{
+						"name": "Copy StockReport to archive",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "StockReport",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"queryTimeout": "02:00:00"
+							},
+							"sink": {
+								"type": "DelimitedTextSink",
+								"storeSettings": {
+									"type": "AzureBlobStorageWriteSettings"
+								},
+								"formatSettings": {
+									"type": "DelimitedTextWriteSettings",
+									"quoteAllText": true,
+									"fileExtension": ".txt"
+								}
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "StockReport",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "archive",
+								"type": "DatasetReference",
+								"parameters": {
+									"filename": {
+										"value": "@concat('StockReport-',utcnow(),'.csv')",
+										"type": "Expression"
+									}
+								}
+							}
+						]
+					},
+					{
+						"name": "Copy ProfitReport to export",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "ProfitReport",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"queryTimeout": "02:00:00"
+							},
+							"sink": {
+								"type": "DelimitedTextSink",
+								"storeSettings": {
+									"type": "AzureBlobStorageWriteSettings"
+								},
+								"formatSettings": {
+									"type": "DelimitedTextWriteSettings",
+									"quoteAllText": true,
+									"fileExtension": ".txt"
+								}
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "ProfitReport",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "Output",
+								"type": "DatasetReference",
+								"parameters": {
+									"FileName": "ProfitReport.csv"
+								}
+							}
+						]
+					},
+					{
+						"name": "Copy StockReport to export",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "StockReport",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"queryTimeout": "02:00:00"
+							},
+							"sink": {
+								"type": "DelimitedTextSink",
+								"storeSettings": {
+									"type": "AzureBlobStorageWriteSettings"
+								},
+								"formatSettings": {
+									"type": "DelimitedTextWriteSettings",
+									"quoteAllText": true,
+									"fileExtension": ".txt"
+								}
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "StockReport",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "Output",
+								"type": "DatasetReference",
+								"parameters": {
+									"FileName": "StockReport.csv"
+								}
+							}
+						]
+					}
+				],
+				"folder": {
+					"name": "Main"
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/dataflows/ProfitReport')]",
+				"[concat(variables('factoryId'), '/dataflows/StockReport')]",
+				"[concat(variables('factoryId'), '/datasets/archive')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DimTable')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "DimCustomer",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "DimCustomer",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"LandingTable": {},
+									"DimCustomer": {},
+									"sink1": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							}
+						}
+					},
+					{
+						"name": "DimAddress",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "DimAddress",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"LandingTable": {},
+									"DimAddress": {},
+									"sink1": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							}
+						}
+					},
+					{
+						"name": "DimCustAdd",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [
+							{
+								"activity": "DimCustomer",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							},
+							{
+								"activity": "DimAddress",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "DimCustAdd",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"source1": {},
+									"DimCust": {},
+									"DimAdd": {},
+									"DimCus": {},
+									"sink1": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							}
+						}
+					},
+					{
+						"name": "DimWarehouse",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "DimWarehouse",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"LandingTable": {},
+									"DimWarehouse": {},
+									"sink1": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							}
+						}
+					},
+					{
+						"name": "DimProduct",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "DimProduct",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"LandingTable": {},
+									"DimProduct": {},
+									"sink1": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							}
+						}
+					},
+					{
+						"name": "DimOrder",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "DimOrder",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"LandingTable": {},
+									"DimOrder": {},
+									"sink1": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							}
+						}
+					}
+				],
+				"folder": {
+					"name": "Main"
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/dataflows/DimCustomer')]",
+				"[concat(variables('factoryId'), '/dataflows/DimAddress')]",
+				"[concat(variables('factoryId'), '/dataflows/DimCustAdd')]",
+				"[concat(variables('factoryId'), '/dataflows/DimWarehouse')]",
+				"[concat(variables('factoryId'), '/dataflows/DimProduct')]",
+				"[concat(variables('factoryId'), '/dataflows/DimOrder')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/FactTable')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "FactOrder",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "FactOrder",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"DimCus": {},
+									"DimProduct": {},
+									"DimDate": {},
+									"source1": {},
+									"OrderFact": {},
+									"DimOrder": {},
+									"DimWarehouse": {},
+									"sink1": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							}
+						}
+					},
+					{
+						"name": "FactStock",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [
+							{
+								"activity": "FactOrder",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "FactStock",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"source1": {},
+									"DimProduct": {},
+									"DimWarehouse": {},
+									"StockFact": {},
+									"OrderFact": {},
+									"sink1": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							}
+						}
+					}
+				],
+				"folder": {
+					"name": "Main"
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/dataflows/FactOrder')]",
+				"[concat(variables('factoryId'), '/dataflows/FactStock')]"
+			]
+		}
+	]
+}

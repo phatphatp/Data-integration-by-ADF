@@ -1,0 +1,161 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "pDataFactoryRnD"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/StockReport')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "output",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "SQL"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "OrderDate",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "PRODUCT_NAME",
+						"type": "varchar"
+					},
+					{
+						"name": "WAREHOUSE_NAME",
+						"type": "varchar"
+					},
+					{
+						"name": "REORDERD_STOCK",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "CURRENT_STOCK",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "Flag",
+						"type": "int",
+						"precision": 10
+					}
+				],
+				"typeProperties": {
+					"schema": "out",
+					"table": "StockReport"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/StockReport')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "Stock_Fact",
+								"type": "DatasetReference"
+							},
+							"name": "source1"
+						},
+						{
+							"dataset": {
+								"referenceName": "DimDate",
+								"type": "DatasetReference"
+							},
+							"name": "DimDate"
+						},
+						{
+							"dataset": {
+								"referenceName": "DimProduct",
+								"type": "DatasetReference"
+							},
+							"name": "DimProduct"
+						},
+						{
+							"dataset": {
+								"referenceName": "DimWarehouse",
+								"type": "DatasetReference"
+							},
+							"name": "DimWarehouse"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "StockReport",
+								"type": "DatasetReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "SumQuantity"
+						},
+						{
+							"name": "Lookup2"
+						},
+						{
+							"name": "Select2"
+						},
+						{
+							"name": "Filter1"
+						},
+						{
+							"name": "DerivedColumn1"
+						},
+						{
+							"name": "OriData"
+						},
+						{
+							"name": "Lookup3"
+						},
+						{
+							"name": "Select3"
+						},
+						{
+							"name": "Flag"
+						},
+						{
+							"name": "Lookup4"
+						},
+						{
+							"name": "Select4"
+						},
+						{
+							"name": "Lookup5"
+						},
+						{
+							"name": "Select5"
+						}
+					],
+					"script": "source(output(\n\t\tPRODUCT_WK as integer,\n\t\tWAREHOUSE_WK as integer,\n\t\tTOTAL_STOCK as integer,\n\t\tREORDER_STOCK as integer,\n\t\tCURRENT_STOCK as integer,\n\t\tOrderDate as integer,\n\t\tFlag as integer,\n\t\tModifiedDate as date\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tformat: 'table') ~> source1\nsource(output(\n\t\tDay_WK as integer,\n\t\tMonth_WK as integer,\n\t\tFullDate as timestamp,\n\t\tYear_Code as integer,\n\t\tMonth_Code as integer,\n\t\tMonth_Name as string,\n\t\tWeekDay_Code as integer,\n\t\tDay_Name as string,\n\t\tIs_WeekDay as boolean,\n\t\tNumberOfWorkDays as integer\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tformat: 'table') ~> DimDate\nsource(output(\n\t\tPRODUCT_WK as integer,\n\t\tPRODUCT_ID as string,\n\t\tNAME as string,\n\t\tPRODUCT_DES as string,\n\t\tUNIT_PRICE as decimal(10,2),\n\t\tModifiedDate as date\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tformat: 'table') ~> DimProduct\nsource(output(\n\t\tWAREHOUSE_WK as integer,\n\t\tWAREHOUSE_ID as string,\n\t\tNAME as string,\n\t\tLOCATION as string,\n\t\tModifiedDate as date\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tformat: 'table') ~> DimWarehouse\nFilter1 aggregate(groupBy(OrderDate,\n\t\tPRODUCT_NAME,\n\t\tWAREHOUSE_NAME),\n\tQuantityStock = sum(QuantityStock)) ~> SumQuantity\nsource1, DimDate lookup(OrderDate == Day_WK,\n\tmultiple: false,\n\tpickup: 'any',\n\tbroadcast: 'auto')~> Lookup2\nLookup2 select(mapColumn(\n\t\tPRODUCT_WK,\n\t\tWAREHOUSE_WK,\n\t\tREORDER_STOCK,\n\t\tCURRENT_STOCK,\n\t\tOrderDate,\n\t\tFlag,\n\t\tFullDate,\n\t\tTOTAL_STOCK\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> Select2\nDerivedColumn1 filter(FullDate == currentDate()) ~> Filter1\nSelect5 derive(FullDate = toDate(toString(FullDate,'yyyy-MM-dd')),\n\t\tQuantityStock = TOTAL_STOCK - CURRENT_STOCK) ~> DerivedColumn1\nFilter1 select(mapColumn(\n\t\tREORDER_STOCK,\n\t\tCURRENT_STOCK,\n\t\tOrderDate,\n\t\tFlag,\n\t\tFullDate,\n\t\tTOTAL_STOCK,\n\t\tPRODUCT_NAME,\n\t\tWAREHOUSE_NAME,\n\t\tQuantityStock\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> OriData\nSumQuantity, OriData lookup(SumQuantity@PRODUCT_NAME == OriData@PRODUCT_NAME\n\t&& SumQuantity@WAREHOUSE_NAME == OriData@WAREHOUSE_NAME\n\t&& SumQuantity@OrderDate == OriData@OrderDate,\n\tmultiple: false,\n\tpickup: 'any',\n\tbroadcast: 'auto')~> Lookup3\nLookup3 select(mapColumn(\n\t\tOrderDate = SumQuantity@OrderDate,\n\t\tPRODUCT_NAME = SumQuantity@PRODUCT_NAME,\n\t\tWAREHOUSE_NAME = SumQuantity@WAREHOUSE_NAME,\n\t\tQuantityStock = SumQuantity@QuantityStock,\n\t\tREORDER_STOCK,\n\t\tCURRENT_STOCK,\n\t\tTOTAL_STOCK\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> Select3\nSelect3 derive(Flag = iif(lesserOrEqual(CURRENT_STOCK,REORDER_STOCK),1,0),\n\t\tCURRENT_STOCK = TOTAL_STOCK - QuantityStock) ~> Flag\nSelect2, DimProduct lookup(Select2@PRODUCT_WK == DimProduct@PRODUCT_WK,\n\tmultiple: false,\n\tpickup: 'any',\n\tbroadcast: 'auto')~> Lookup4\nLookup4 select(mapColumn(\n\t\tWAREHOUSE_WK,\n\t\tREORDER_STOCK,\n\t\tCURRENT_STOCK,\n\t\tOrderDate,\n\t\tFlag,\n\t\tFullDate,\n\t\tTOTAL_STOCK,\n\t\tPRODUCT_NAME = NAME\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> Select4\nSelect4, DimWarehouse lookup(Select4@WAREHOUSE_WK == DimWarehouse@WAREHOUSE_WK,\n\tmultiple: false,\n\tpickup: 'any',\n\tbroadcast: 'auto')~> Lookup5\nLookup5 select(mapColumn(\n\t\tREORDER_STOCK,\n\t\tCURRENT_STOCK,\n\t\tOrderDate,\n\t\tFlag,\n\t\tFullDate,\n\t\tTOTAL_STOCK,\n\t\tPRODUCT_NAME,\n\t\tWAREHOUSE_NAME = NAME\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> Select5\nFlag sink(input(\n\t\tOrderDate as integer,\n\t\tPRODUCT_NAME as string,\n\t\tWAREHOUSE_NAME as string,\n\t\tREORDERD_STOCK as integer,\n\t\tCURRENT_STOCK as integer,\n\t\tFlag as integer\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tdeletable:false,\n\tinsertable:true,\n\tupdateable:false,\n\tupsertable:false,\n\tformat: 'table',\n\tpreSQLs:['delete from [out].[StockReport]'],\n\tmapColumn(\n\t\tOrderDate,\n\t\tPRODUCT_NAME,\n\t\tWAREHOUSE_NAME,\n\t\tREORDERD_STOCK = REORDER_STOCK,\n\t\tCURRENT_STOCK,\n\t\tFlag\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> sink1"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/StockReport')]"
+			]
+		}
+	]
+}

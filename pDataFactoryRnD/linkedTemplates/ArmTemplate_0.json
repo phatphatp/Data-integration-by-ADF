@@ -1,0 +1,1045 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "pDataFactoryRnD"
+		},
+		"DimDate_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'DimDate'"
+		},
+		"Inputfile_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'Inputfile'"
+		},
+		"output_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'output'"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/ErrorEmail')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Web1",
+						"type": "WebActivity",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"url": "https://prod-04.southeastasia.logic.azure.com:443/workflows/ac880e184263418eadd3ba15e9bf7ee3/triggers/manual/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=2GEVepc_1G4uMKqS6OqQAuv_vl1NBlyyJqUTj_Ix1EI",
+							"method": "POST",
+							"headers": {},
+							"body": {
+								"value": "{\n\"Title\":\"PIPELINE RUN FAILED\",\n\"Message\":\"DEMO-PIPELINE FINISHED RUNNING FAILED!\",\n\"Color\":\"Red\",\n\"DataFactoryName\":\"@{pipeline().DataFactory}\",\n\"PipelineName\":\"@{pipeline().Pipeline}\",\n\"PipeLineId\":\"@{pipeline().RunId}\",\n\"Time\":\"@{utcnow()}\"\n}",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"folder": {
+					"name": "Main"
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DimDate')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureSqlDatabase",
+				"typeProperties": {
+					"connectionString": "[parameters('DimDate_connectionString')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Inputfile')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobStorage",
+				"typeProperties": {
+					"connectionString": "[parameters('Inputfile_connectionString')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/output')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureSqlDatabase",
+				"typeProperties": {
+					"connectionString": "[parameters('output_connectionString')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/CUSTOMER')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "Inputfile",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "blob storage"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobStorageLocation",
+						"fileName": "CUSTOMER.csv",
+						"container": "input"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "CUSTOMER_ID",
+						"type": "String"
+					},
+					{
+						"name": "FIRST_NAME",
+						"type": "String"
+					},
+					{
+						"name": "LAST_NAME",
+						"type": "String"
+					},
+					{
+						"name": "PHONE",
+						"type": "String"
+					},
+					{
+						"name": "EMAIL",
+						"type": "String"
+					},
+					{
+						"name": "ADDRESS LINE 1",
+						"type": "String"
+					},
+					{
+						"name": "ADDRESS LINE 2",
+						"type": "String"
+					},
+					{
+						"name": "CITY",
+						"type": "String"
+					},
+					{
+						"name": "STATE",
+						"type": "String"
+					},
+					{
+						"name": "COUNTRY",
+						"type": "String"
+					},
+					{
+						"name": "ZIPCODE",
+						"type": "String"
+					},
+					{
+						"name": "ADDRESS TYPE",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/Inputfile')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/CustomerTable')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "output",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "SQL"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "CUSTOMER_ID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "FULL_NAME",
+						"type": "varchar"
+					},
+					{
+						"name": "EMAIL",
+						"type": "varchar"
+					},
+					{
+						"name": "PHONE",
+						"type": "varchar"
+					},
+					{
+						"name": "ADDRESS_LINE1",
+						"type": "varchar"
+					},
+					{
+						"name": "ADDRESS_LINE2",
+						"type": "varchar"
+					},
+					{
+						"name": "CITY",
+						"type": "varchar"
+					},
+					{
+						"name": "STATE",
+						"type": "varchar"
+					},
+					{
+						"name": "COUNTRY",
+						"type": "varchar"
+					},
+					{
+						"name": "ZIPCODE",
+						"type": "varchar"
+					},
+					{
+						"name": "ADDRESS_TYPE",
+						"type": "varchar"
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "CUSTOMER"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/output')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DimAddress')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "output",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "SQL"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "ADDRESS_WK",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "ADDRESS_LINE1",
+						"type": "varchar"
+					},
+					{
+						"name": "ADDRESS_LINE2",
+						"type": "varchar"
+					},
+					{
+						"name": "CITY",
+						"type": "varchar"
+					},
+					{
+						"name": "STATE",
+						"type": "varchar"
+					},
+					{
+						"name": "COUNTRY",
+						"type": "varchar"
+					},
+					{
+						"name": "ZIPCODE",
+						"type": "varchar"
+					},
+					{
+						"name": "ADDRESS_TYPE",
+						"type": "varchar"
+					},
+					{
+						"name": "ModifiedDate",
+						"type": "date"
+					}
+				],
+				"typeProperties": {
+					"schema": "prod",
+					"table": "DimAddress"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/output')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DimCus')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "output",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "SQL"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "CUSTOMER_WK",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "CUSTOMER_ID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "FULL_NAME",
+						"type": "varchar"
+					},
+					{
+						"name": "EMAIL",
+						"type": "varchar"
+					},
+					{
+						"name": "PHONE",
+						"type": "varchar"
+					},
+					{
+						"name": "ModifiedDate",
+						"type": "date"
+					}
+				],
+				"typeProperties": {
+					"schema": "prod",
+					"table": "DimCustomer"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/output')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DimCustAddress')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "output",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "SQL"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "ADDRESS_TYPE",
+						"type": "varchar"
+					},
+					{
+						"name": "CUSTOMER_WK",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "ADDRESS_WK",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "ModifiedDate",
+						"type": "date"
+					}
+				],
+				"typeProperties": {
+					"schema": "prod",
+					"table": "DimCustAdd"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/output')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DimDate')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "DimDate",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "SQL"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "Day_WK",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "Month_WK",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "FullDate",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					},
+					{
+						"name": "Year_Code",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "Month_Code",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "Month_Name",
+						"type": "nvarchar"
+					},
+					{
+						"name": "WeekDay_Code",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "Day_Name",
+						"type": "nvarchar"
+					},
+					{
+						"name": "Is_WeekDay",
+						"type": "bit"
+					},
+					{
+						"name": "NumberOfWorkDays",
+						"type": "int",
+						"precision": 10
+					}
+				],
+				"typeProperties": {
+					"schema": "dim",
+					"table": "Date"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/DimDate')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DimOrder')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "output",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "SQL"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "ORDER_WK",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "ORDER_DATE",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					},
+					{
+						"name": "ModifiedDate",
+						"type": "date"
+					}
+				],
+				"typeProperties": {
+					"schema": "prod",
+					"table": "DimOrder"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/output')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DimProduct')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "output",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "SQL"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "PRODUCT_WK",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "PRODUCT_ID",
+						"type": "varchar"
+					},
+					{
+						"name": "NAME",
+						"type": "varchar"
+					},
+					{
+						"name": "PRODUCT_DES",
+						"type": "varchar"
+					},
+					{
+						"name": "UNIT_PRICE",
+						"type": "decimal",
+						"precision": 10,
+						"scale": 2
+					},
+					{
+						"name": "ModifiedDate",
+						"type": "date"
+					}
+				],
+				"typeProperties": {
+					"schema": "prod",
+					"table": "DimProduct"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/output')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DimWarehouse')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "output",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "SQL"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "WAREHOUSE_WK",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "WAREHOUSE_ID",
+						"type": "varchar"
+					},
+					{
+						"name": "NAME",
+						"type": "varchar"
+					},
+					{
+						"name": "LOCATION",
+						"type": "varchar"
+					},
+					{
+						"name": "ModifiedDate",
+						"type": "date"
+					}
+				],
+				"typeProperties": {
+					"schema": "prod",
+					"table": "DimWarehouse"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/output')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ORDER_DETAILS')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "Inputfile",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "blob storage"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobStorageLocation",
+						"fileName": "ORDER DETAILS.csv",
+						"container": "input"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "CUSTOMER ID",
+						"type": "String"
+					},
+					{
+						"name": "CUSTOMER ADDRESS",
+						"type": "String"
+					},
+					{
+						"name": "PRODUCT ID",
+						"type": "String"
+					},
+					{
+						"name": "NAME",
+						"type": "String"
+					},
+					{
+						"name": "CATEGORY",
+						"type": "String"
+					},
+					{
+						"name": "SUB CATEGORY",
+						"type": "String"
+					},
+					{
+						"name": "PRODUCT DESCRIPTION",
+						"type": "String"
+					},
+					{
+						"name": "UNIT SELL PRICE",
+						"type": "String"
+					},
+					{
+						"name": "CURRENCY",
+						"type": "String"
+					},
+					{
+						"name": "QUANTITY ORDERED",
+						"type": "String"
+					},
+					{
+						"name": "ORDER DATE",
+						"type": "String"
+					},
+					{
+						"name": "WAREHOUSE",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/Inputfile')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/OrderTable')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "output",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "SQL"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "CUSTOMER_ID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "CUSTOMER_ADDRESS",
+						"type": "varchar"
+					},
+					{
+						"name": "PRODUCT_ID",
+						"type": "varchar"
+					},
+					{
+						"name": "PNAME",
+						"type": "varchar"
+					},
+					{
+						"name": "CATEGORY",
+						"type": "varchar"
+					},
+					{
+						"name": "SUB_CATEGORY",
+						"type": "varchar"
+					},
+					{
+						"name": "PRODUCT_DESCRIPTION",
+						"type": "varchar"
+					},
+					{
+						"name": "UNIT_SELL_PRICE",
+						"type": "decimal",
+						"precision": 10,
+						"scale": 2
+					},
+					{
+						"name": "CURRENCY",
+						"type": "varchar"
+					},
+					{
+						"name": "QUANTITY_ORDERED",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "WAREHOUSE",
+						"type": "varchar"
+					},
+					{
+						"name": "ORDER_DATE",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "ORDER_DETAILS"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/output')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Order_Fact')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "output",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "SQL"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "OrderDate",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "CUSTOMER_WK",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "ORDER_WK",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "PRODUCT_WK",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "QUANTITY_ORDERED",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "AMOUNT",
+						"type": "decimal",
+						"precision": 10,
+						"scale": 2
+					},
+					{
+						"name": "WAREHOUSE_WK",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "ModifiedDate",
+						"type": "date"
+					}
+				],
+				"typeProperties": {
+					"schema": "prod",
+					"table": "Order_Fact"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/output')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Output')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "Inputfile",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"FileName": {
+						"type": "string"
+					}
+				},
+				"folder": {
+					"name": "blob storage"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobStorageLocation",
+						"fileName": {
+							"value": "@dataset().FileName",
+							"type": "Expression"
+						},
+						"container": "output"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/Inputfile')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ProfitReport')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "output",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "SQL"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "OrderDate",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "PRODUCT_WK",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "PRODUCT_NAME",
+						"type": "varchar"
+					},
+					{
+						"name": "PROFIT",
+						"type": "decimal",
+						"precision": 10,
+						"scale": 2
+					}
+				],
+				"typeProperties": {
+					"schema": "out",
+					"table": "ProfitReport"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/output')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/StockReport')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "output",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "SQL"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "OrderDate",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "PRODUCT_NAME",
+						"type": "varchar"
+					},
+					{
+						"name": "WAREHOUSE_NAME",
+						"type": "varchar"
+					},
+					{
+						"name": "REORDERD_STOCK",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "CURRENT_STOCK",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "Flag",
+						"type": "int",
+						"precision": 10
+					}
+				],
+				"typeProperties": {
+					"schema": "out",
+					"table": "StockReport"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/output')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Stock_Fact')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "output",
+					"type": "LinkedServiceReference"
+				},
+				"folder": {
+					"name": "SQL"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "PRODUCT_WK",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "WAREHOUSE_WK",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "TOTAL_STOCK",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "REORDER_STOCK",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "CURRENT_STOCK",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "OrderDate",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "Flag",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "ModifiedDate",
+						"type": "date"
+					}
+				],
+				"typeProperties": {
+					"schema": "prod",
+					"table": "Stock_Fact"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/output')]"
+			]
+		}
+	]
+}
