@@ -548,7 +548,7 @@
 			"properties": {
 				"description": "Trigger daily-report pipeline everyday",
 				"annotations": [],
-				"runtimeState": "Started",
+				"runtimeState": "Stopped",
 				"pipelines": [
 					{
 						"pipelineReference": {
@@ -563,14 +563,14 @@
 					"recurrence": {
 						"frequency": "Day",
 						"interval": 1,
-						"startTime": "2020-07-25T12:22:00Z",
+						"startTime": "2020-07-25T12:22:00.000Z",
 						"timeZone": "UTC",
 						"schedule": {
 							"minutes": [
 								0
 							],
 							"hours": [
-								9
+								3
 							]
 						}
 					}
